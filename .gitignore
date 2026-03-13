@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Environment variables
+.env
+
+# FFmpeg
+ffmpeg*
+*.exe
+*.zip
+*.7z
+
+# Logs
+*.log
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large files
+*.mp4
+*.mp3
+*.wav
+*.mkv
+
+# Whisper / AI cache
+.cache/
+models/
