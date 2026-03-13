@@ -5,11 +5,56 @@ import subprocess
 import traceback
 from datetime import datetime, timezone
 from pymongo import ReturnDocument
+from modules.thumbnail_generator import generate_thumbnail
+import subprocess
+import json
+
+
+
 
 
 from database.mongo import jobs_collection
 from modules.summarizer import summarize_text
 from modules.blog_generator import generate_blog
+
+def get_video_duration(path):
+
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "json",
+        path
+    ]
+
+    result = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    if result.returncode != 0:
+        print("ffprobe error:", result.stderr)
+        return 0
+
+    try:
+        data = json.loads(result.stdout)
+
+        if "format" not in data:
+            print("No format in ffprobe output")
+            return 0
+
+        duration = float(data["format"]["duration"])
+
+        return duration
+
+    except Exception as e:
+        print("Duration read error:", e)
+        return 0
 
 def download_youtube(url, output):
 
@@ -63,11 +108,18 @@ def transcribe_audio(audio_path, txt_path):
         print("Warning: transcript is empty")
 
 
-def claim_next_job():
+def claim_next_job(worker_started_at):
 
     return jobs_collection.find_one_and_update(
-        {"status": "uploaded"},
-        {"$set": {"status": "processing"}},
+        {
+            "status": "uploaded"
+        },
+        {
+            "$set": {
+                "status": "processing",
+                "started_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
         return_document=ReturnDocument.AFTER
     )
 
@@ -77,12 +129,13 @@ def process_job(job):
     try:
 
         job_id = job["job_id"]
+        status = job["status"]
 
         # =========================
         # SUMMARY STEP
         # =========================
 
-        if job["status"] == "summarize_requested":
+        if status == "summarize_requested":
 
             print("Summarizing", job_id)
 
@@ -113,19 +166,16 @@ def process_job(job):
 
             return
 
-    
+
         # =========================
         # BLOG STEP
         # =========================
-        if job["status"] == "summary_ready":
 
-            job_id = job["job_id"]
+        if status == "summary_ready":
 
             print("Generating blog", job_id)
 
-            summary_file = job["summary_file"]
-
-            with open(summary_file, "r", encoding="utf-8") as f:
+            with open(job["summary_file"], "r", encoding="utf-8") as f:
                 summary = f.read()
 
             blog = generate_blog(summary)
@@ -135,29 +185,65 @@ def process_job(job):
             with open(blog_path, "w", encoding="utf-8") as f:
                 f.write(blog)
 
+            # get title from blog
+            title = blog.split("\n")[0]
+
+            thumb_path = f"jobs/{job_id}_thumb.png"
+
+            generate_thumbnail(title, thumb_path)
+
             jobs_collection.update_one(
                 {"job_id": job_id},
                 {"$set": {
                     "status": "blog_ready",
-                    "blog_file": blog_path
+                    "blog_file": blog_path,
+                    "thumbnail": thumb_path
                 }}
             )
 
             return
 
 
+        # =========================
+        # NORMAL PIPELINE ONLY FOR NEW JOBS
+        # =========================
 
-        # =========================
-        # NORMAL PIPELINE
-        # =========================
+        if status not in [
+            "uploaded",
+            "processing",
+            "downloading",
+            "extracting_audio",
+            "transcribing"
+        ]:
+            return
+
 
         print("Processing job", job_id)
 
         file_path = job["file"]
 
         video_path = f"jobs/{job_id}"
+        
+        duration = get_video_duration(video_path)
+
+        print("Duration:", duration)
+
+        MAX_DURATION = 7200
+
+        if duration and duration > MAX_DURATION:
+
+            jobs_collection.update_one(
+                {"job_id": job_id},
+                {"$set": {
+                    "status": "error",
+                    "error_message": "Video too long (max 2 hours)"
+                }}
+            )
+
+            return
         audio_path = f"jobs/{job_id}.wav"
         txt_path = f"jobs/{job_id}.txt"
+
 
         # ---- download ----
 
@@ -185,16 +271,12 @@ def process_job(job):
 
         # ---- extract ----
 
-        print("Extracting audio")
-
         jobs_collection.update_one(
             {"job_id": job_id},
             {"$set": {"status": "extracting_audio"}}
         )
 
         extract_audio(video_path, audio_path)
-
-        print("Audio created:", audio_path)
 
 
         # ---- transcribe ----
@@ -206,7 +288,6 @@ def process_job(job):
 
         transcribe_audio(audio_path, txt_path)
 
-        print("Transcript saved:", txt_path)
 
         jobs_collection.update_one(
             {"job_id": job_id},
@@ -224,7 +305,10 @@ def process_job(job):
 
         jobs_collection.update_one(
             {"job_id": job["job_id"]},
-            {"$set": {"status": "error", "error_message": str(e)}}
+            {"$set": {
+                "status": "error",
+                "error_message": str(e)
+            }}
         )
 
 
@@ -232,9 +316,13 @@ def worker_loop():
 
     print("Worker started")
 
+    worker_started_at = datetime.now(timezone.utc)
+
     while True:
 
-        job = claim_next_job()
+        job = None
+
+        job = claim_next_job(worker_started_at)
 
         if not job:
             job = jobs_collection.find_one({"status": "summarize_requested"})
@@ -242,7 +330,10 @@ def worker_loop():
         if not job:
             job = jobs_collection.find_one({"status": "summary_ready"})
 
+        if not job:
+            job = jobs_collection.find_one({"status": "waiting_for_model"})
+
         if job:
             process_job(job)
 
-        time.sleep(3)
+        time.sleep(2)

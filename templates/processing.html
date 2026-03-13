@@ -1,23 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Processing</title>
+
 <meta http-equiv="refresh" content="3">
+
+<style>
+
+body{
+font-family:Arial;
+margin:40px;
+background:#f5f5f5;
+}
+
+.container{
+max-width:700px;
+margin:auto;
+background:white;
+padding:30px;
+border-radius:8px;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+.progress-bar{
+width:100%;
+height:30px;
+background:#ddd;
+border-radius:5px;
+overflow:hidden;
+margin-top:10px;
+}
+
+.progress{
+height:100%;
+background:green;
+}
+
+button{
+padding:10px 20px;
+background:green;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+.error{
+color:red;
+font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
 
 <h2>Processing Job</h2>
 
 <p>Job ID: {{ job.job_id }}</p>
-
-<p>Status: {{ job.status }}</p>
-
 <p>Video: {{ job.file }}</p>
-
 <p>Status: {{ job.status }}</p>
 
-<p>DEBUG STATUS = {{ job.status }}</p>
+
+<!-- progress value -->
+
+{% if job.status == "uploaded" %}
+{% set progress = "5%" %}
+{% elif job.status == "downloading" %}
+{% set progress = "15%" %}
+{% elif job.status == "extracting_audio" %}
+{% set progress = "30%" %}
+{% elif job.status == "transcribing" %}
+{% set progress = "45%" %}
+{% elif job.status == "waiting_for_model" %}
+{% set progress = "60%" %}
+{% elif job.status == "summarize_requested" %}
+{% set progress = "75%" %}
+{% elif job.status == "summary_ready" %}
+{% set progress = "90%" %}
+{% elif job.status == "blog_ready" %}
+{% set progress = "100%" %}
+{% else %}
+{% set progress = "5%" %}
+{% endif %}
+
+
+<div class="progress-bar">
+<div class="progress" style="width: {{ progress }}"></div>
+</div>
+
+
+<br>
+
 
 {% if job.status == "waiting_for_model" %}
 
 <a href="/select_model/{{ job.job_id }}">
-    Select Model
+<button>Select Model</button>
 </a>
 
 {% endif %}
 
-<p>Processing will start soon...</p>
+
+{% if job.status == "blog_ready" %}
+
+<a href="/blog/{{ job.job_id }}">
+<button>View Blog</button>
+</a>
+
+{% endif %}
+
+
+{% if job.status == "error" %}
+
+<p class="error">
+Error: {{ job.error_message }}
+</p>
+
+{% endif %}
+
+
+</div>
+
+</body>
+</html>

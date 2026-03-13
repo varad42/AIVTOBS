@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Blog Article</title>
+
+    <style>
+
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        h1 {
+            color: #222;
+        }
+
+        .meta {
+            color: gray;
+            margin-bottom: 20px;
+        }
+
+        .blog {
+            white-space: pre-wrap;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+{% if thumbnail %}
+
+<img src="/{{ thumbnail }}" width="600">
+
+<br><br>
+
+{% endif %}
+
+<h1>Generated Blog</h1>
+
+<div class="blog">
+{{ blog }}
+</div>
+
+<br><br>
+
+<a href="/download_blog/{{ job_id }}">
+    Download Blog
+</a>
+
+<a class="btn" href="/history">
+History
+</a>
+
+<a class="btn" href="/dashboard">
+Dashboard
+</a>
+
+</div>
+
+</body>
+
+</html>

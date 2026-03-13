@@ -1,28 +1,53 @@
 from google import genai
 from config import GEMINI_API_KEY
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+
+import os
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
-def generate_blog(summary_text):
+def generate_blog(summary):
 
     prompt = f"""
-Convert the following summary into a proper blog article.
+    Write a blog article from this summary.
 
-Requirements:
-- Add title
-- Add introduction
-- Add headings
-- Add conclusion
-- Make it readable like blog
+    Include:
+    Title
+    Tags
+    Blog Content
 
-Summary:
-{summary_text}
+    Summary:
+    {summary}
+    """
+
+    try:
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
+
+        text = response.text
+
+        if not text:
+            raise Exception("Empty response")
+
+        return text
+
+    except Exception as e:
+
+        print("Gemini failed:", e)
+
+        # ✅ fallback blog
+        return f"""
+Title: Auto Generated Blog
+
+Tags: AI, Summary
+
+Blog:
+
+{summary}
+
+Conclusion:
+This blog was generated using fallback mode because AI API failed.
 """
-
-    response = client.models.generate_content(
-        model="gemini-flash-latest",
-        contents=prompt
-    )
-
-    return response.text

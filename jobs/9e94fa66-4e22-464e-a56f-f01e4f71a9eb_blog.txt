@@ -1,0 +1,1 @@
+Blog generation failed due to API quota.

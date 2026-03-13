@@ -1,0 +1,41 @@
+<h2>Your Video History</h2>
+
+<tr>
+<th>Video</th>
+<th>Status</th>
+<th>Model</th>
+<th>Created</th>
+<th>Finished</th>
+<th>Duration</th>
+<th>Blog</th>
+</tr>
+
+{% for job in jobs %}
+
+<tr>
+
+<td>{{ job.file }}</td>
+
+<td>{{ job.status }}</td>
+
+<td>{{ job.model_used }}</td>
+
+<td>{{ job.created_at }}</td>
+
+<td>{{ job.finished_at }}</td>
+
+<td>{{ job.duration }}</td>
+
+<td>
+
+{% if job.status == "blog_ready" %}
+<a href="/blog/{{ job.job_id }}">View</a>
+{% endif %}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
