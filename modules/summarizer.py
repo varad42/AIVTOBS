@@ -10,7 +10,7 @@ def get_pipeline(model_name):
         return pipeline("summarization", model="facebook/bart-large-cnn")
 
     if model_name == "pegasus":
-        return pipeline("summarization", model="google/pegasus-xsum")
+        return pipeline("summarization", model="google/pegasus-cnn_dailymail")
 
     return pipeline("summarization", model="t5-small")
 

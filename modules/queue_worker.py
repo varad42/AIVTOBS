@@ -9,7 +9,7 @@ from pymongo import ReturnDocument
 
 from database.mongo import jobs_collection
 from modules.summarizer import summarize_text
-
+from modules.blog_generator import generate_blog
 
 def download_youtube(url, output):
 
@@ -63,58 +63,93 @@ def transcribe_audio(audio_path, txt_path):
         print("Warning: transcript is empty")
 
 
-def claim_next_job(worker_started_at):
+def claim_next_job():
 
     return jobs_collection.find_one_and_update(
-        {
-            "status": "uploaded",
-            "queued_at": {"$gte": worker_started_at}
-        },
-        {
-            "$set": {
-                "status": "processing",
-                "started_at": datetime.now(timezone.utc).isoformat()
-            }
-        },
+        {"status": "uploaded"},
+        {"$set": {"status": "processing"}},
         return_document=ReturnDocument.AFTER
     )
 
 
 def process_job(job):
 
-    if job["status"] == "summarize_requested":
-
-        job_id = job["job_id"]
-
-        print("Summarizing", job_id)
-
-        txt = job["transcript_file"]
-
-        with open(txt, "r", encoding="utf-8") as f:
-            text = f.read()
-
-        model = job.get("summary_model", "t5")
-
-        summary = summarize_text(text, model)
-
-        out = f"jobs/{job_id}_summary.txt"
-
-        with open(out, "w", encoding="utf-8") as f:
-            f.write(summary)
-
-        jobs_collection.update_one(
-            {"job_id": job_id},
-            {"$set": {
-                "status": "summary_ready",
-                "summary_file": out
-            }}
-        )
-
-        return
-
     try:
 
         job_id = job["job_id"]
+
+        # =========================
+        # SUMMARY STEP
+        # =========================
+
+        if job["status"] == "summarize_requested":
+
+            print("Summarizing", job_id)
+
+            txt = job["transcript_file"]
+
+            with open(txt, "r", encoding="utf-8") as f:
+                text = f.read()
+
+            model = job.get("summary_model", "t5")
+
+            summary = summarize_text(text, model)
+
+            out = f"jobs/{job_id}_summary_{model}.txt"
+
+            if os.path.exists(out):
+                os.remove(out)
+
+            with open(out, "w", encoding="utf-8") as f:
+                f.write(summary)
+
+            jobs_collection.update_one(
+                {"job_id": job_id},
+                {"$set": {
+                    "status": "summary_ready",
+                    "summary_file": out
+                }}
+            )
+
+            return
+
+    
+        # =========================
+        # BLOG STEP
+        # =========================
+        if job["status"] == "summary_ready":
+
+            job_id = job["job_id"]
+
+            print("Generating blog", job_id)
+
+            summary_file = job["summary_file"]
+
+            with open(summary_file, "r", encoding="utf-8") as f:
+                summary = f.read()
+
+            blog = generate_blog(summary)
+
+            blog_path = f"jobs/{job_id}_blog.txt"
+
+            with open(blog_path, "w", encoding="utf-8") as f:
+                f.write(blog)
+
+            jobs_collection.update_one(
+                {"job_id": job_id},
+                {"$set": {
+                    "status": "blog_ready",
+                    "blog_file": blog_path
+                }}
+            )
+
+            return
+
+
+
+        # =========================
+        # NORMAL PIPELINE
+        # =========================
 
         print("Processing job", job_id)
 
@@ -124,9 +159,7 @@ def process_job(job):
         audio_path = f"jobs/{job_id}.wav"
         txt_path = f"jobs/{job_id}.txt"
 
-        # -------------------
-        # Download YouTube
-        # -------------------
+        # ---- download ----
 
         if file_path.startswith("http"):
 
@@ -149,9 +182,8 @@ def process_job(job):
         else:
             video_path = file_path
 
-        # -------------------
-        # Extract audio
-        # -------------------
+
+        # ---- extract ----
 
         print("Extracting audio")
 
@@ -164,16 +196,13 @@ def process_job(job):
 
         print("Audio created:", audio_path)
 
-        # -------------------
-        # Transcribe
-        # -------------------
+
+        # ---- transcribe ----
 
         jobs_collection.update_one(
             {"job_id": job_id},
             {"$set": {"status": "transcribing"}}
         )
-
-        print("Starting Whisper")
 
         transcribe_audio(audio_path, txt_path)
 
@@ -181,8 +210,12 @@ def process_job(job):
 
         jobs_collection.update_one(
             {"job_id": job_id},
-            {"$set": {"status": "waiting_for_model","transcript_file": txt_path}}
+            {"$set": {
+                "status": "waiting_for_model",
+                "transcript_file": txt_path
+            }}
         )
+
 
     except Exception as e:
 
@@ -198,14 +231,16 @@ def process_job(job):
 def worker_loop():
 
     print("Worker started")
-    worker_started_at = datetime.now(timezone.utc)
 
     while True:
 
-        job = claim_next_job(worker_started_at)
+        job = claim_next_job()
 
         if not job:
             job = jobs_collection.find_one({"status": "summarize_requested"})
+
+        if not job:
+            job = jobs_collection.find_one({"status": "summary_ready"})
 
         if job:
             process_job(job)

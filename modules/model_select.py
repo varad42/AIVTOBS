@@ -22,6 +22,9 @@ def select_model(job_id):
                 "$set": {
                     "summary_model": model,
                     "status": "summarize_requested"
+                },
+                "$unset": {
+                    "summary_file": ""
                 }
             }
         )
