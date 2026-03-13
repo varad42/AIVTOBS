@@ -6,7 +6,9 @@ import traceback
 from datetime import datetime, timezone
 from pymongo import ReturnDocument
 
+
 from database.mongo import jobs_collection
+from modules.summarizer import summarize_text
 
 
 def download_youtube(url, output):
@@ -79,6 +81,36 @@ def claim_next_job(worker_started_at):
 
 
 def process_job(job):
+
+    if job["status"] == "summarize_requested":
+
+        job_id = job["job_id"]
+
+        print("Summarizing", job_id)
+
+        txt = job["transcript_file"]
+
+        with open(txt, "r", encoding="utf-8") as f:
+            text = f.read()
+
+        model = job.get("summary_model", "t5")
+
+        summary = summarize_text(text, model)
+
+        out = f"jobs/{job_id}_summary.txt"
+
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(summary)
+
+        jobs_collection.update_one(
+            {"job_id": job_id},
+            {"$set": {
+                "status": "summary_ready",
+                "summary_file": out
+            }}
+        )
+
+        return
 
     try:
 
@@ -171,6 +203,9 @@ def worker_loop():
     while True:
 
         job = claim_next_job(worker_started_at)
+
+        if not job:
+            job = jobs_collection.find_one({"status": "summarize_requested"})
 
         if job:
             process_job(job)
