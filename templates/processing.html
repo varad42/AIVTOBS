@@ -1,0 +1,23 @@
+<meta http-equiv="refresh" content="3">
+
+<h2>Processing Job</h2>
+
+<p>Job ID: {{ job.job_id }}</p>
+
+<p>Status: {{ job.status }}</p>
+
+<p>Video: {{ job.file }}</p>
+
+<p>Status: {{ job.status }}</p>
+
+<p>DEBUG STATUS = {{ job.status }}</p>
+
+{% if job.status == "waiting_for_model" %}
+
+<a href="/select_model/{{ job.job_id }}">
+    Select Model
+</a>
+
+{% endif %}
+
+<p>Processing will start soon...</p>
