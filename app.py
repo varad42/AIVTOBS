@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 from modules.queue_worker import worker_loop
 import threading
 import os
@@ -11,8 +13,7 @@ from auth.login import login_bp
 from auth.register import register_bp
 from modules.upload import upload_bp
 from modules.processing import processing_bp
-from dotenv import load_dotenv
-load_dotenv()
+
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY

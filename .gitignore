@@ -11,6 +11,7 @@ env/
 
 # Environment variables
 .env
+.env.*
 
 # FFmpeg
 ffmpeg*
@@ -43,3 +44,8 @@ Thumbs.db
 # Whisper / AI cache
 .cache/
 models/
+
+# App-generated files
+jobs/
+uploads/
+outputs/

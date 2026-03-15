@@ -12,44 +12,17 @@
 body{
 font-family:Arial;
 margin:40px;
-background:#f5f5f5;
-}
-
-.container{
-max-width:700px;
-margin:auto;
-background:white;
-padding:30px;
-border-radius:8px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
 }
 
 .progress-bar{
 width:100%;
-height:30px;
+height:25px;
 background:#ddd;
-border-radius:5px;
-overflow:hidden;
-margin-top:10px;
 }
 
 .progress{
 height:100%;
 background:green;
-}
-
-button{
-padding:10px 20px;
-background:green;
-color:white;
-border:none;
-border-radius:5px;
-cursor:pointer;
-}
-
-.error{
-color:red;
-font-weight:bold;
 }
 
 </style>
@@ -58,74 +31,62 @@ font-weight:bold;
 
 <body>
 
-<div class="container">
-
 <h2>Processing Job</h2>
 
 <p>Job ID: {{ job.job_id }}</p>
-<p>Video: {{ job.file }}</p>
+<p>Job Name: {{ job.get("job_slug", job.job_id) }}</p>
+
 <p>Status: {{ job.status }}</p>
 
+<h3>Timings</h3>
 
-<!-- progress value -->
-
-{% if job.status == "uploaded" %}
-{% set progress = "5%" %}
-{% elif job.status == "downloading" %}
-{% set progress = "15%" %}
-{% elif job.status == "extracting_audio" %}
-{% set progress = "30%" %}
-{% elif job.status == "transcribing" %}
-{% set progress = "45%" %}
-{% elif job.status == "waiting_for_model" %}
-{% set progress = "60%" %}
-{% elif job.status == "summarize_requested" %}
-{% set progress = "75%" %}
-{% elif job.status == "summary_ready" %}
-{% set progress = "90%" %}
-{% elif job.status == "blog_ready" %}
-{% set progress = "100%" %}
+<p>
+YouTube/upload to transcript saved:
+{% if job.get("upload_to_transcript_seconds") is not none %}
+{{ format_seconds(job.get("upload_to_transcript_seconds")) }}
 {% else %}
-{% set progress = "5%" %}
+Pending
+{% endif %}
+</p>
+
+<p>
+Selected model to summary saved:
+{% if job.get("summary_generation_seconds") is not none %}
+{{ format_seconds(job.get("summary_generation_seconds")) }}
+{% else %}
+Pending
+{% endif %}
+</p>
+
+
+{% set progress = 5 %}
+
+{% if job.status == "downloading" %}
+{% set progress = 20 %}
+{% elif job.status == "extracting_audio" %}
+{% set progress = 40 %}
+{% elif job.status == "transcribing" %}
+{% set progress = 60 %}
+{% elif job.status == "waiting_for_model" %}
+{% set progress = 80 %}
+{% elif job.status == "summary_ready" %}
+{% set progress = 100 %}
 {% endif %}
 
 
 <div class="progress-bar">
-<div class="progress" style="width: {{ progress }}"></div>
+<div class="progress" style="width: {{ progress }}%"></div>
 </div>
-
-
-<br>
 
 
 {% if job.status == "waiting_for_model" %}
 
 <a href="/select_model/{{ job.job_id }}">
-<button>Select Model</button>
+Select Model
 </a>
 
 {% endif %}
 
-
-{% if job.status == "blog_ready" %}
-
-<a href="/blog/{{ job.job_id }}">
-<button>View Blog</button>
-</a>
-
-{% endif %}
-
-
-{% if job.status == "error" %}
-
-<p class="error">
-Error: {{ job.error_message }}
-</p>
-
-{% endif %}
-
-
-</div>
 
 </body>
 </html>

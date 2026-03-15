@@ -1,0 +1,29 @@
+This is documentation file of our project Named AI video To Blog summarizer. I was testing The amount of time required by the system After uploading Youtube url ,Fetching the audio ,Transcribing it And saving it And the second Amount of time required by the system After Choosing a certain model To summarise it And saving the file We know we are using Gemini Api
+
+
+
+1]1min video(https://www.youtube.com/watch?v=1aA1WGON49E)
+Upload video to transcript saved Time required 28.06 second/294.88seconds
+(T5)Model selected to summary ready Time required 4.60 seconds/(T5-small)Model selected to summary ready Time required 19.30 seconds 
+
+(BART)Model selected to summary ready I required 11.29 seconds/(distil-BART)Model selected to summary ready I required  seconds
+
+(PEGASUS)Model selected to summary ready Time required 46.86 seconds
+
+2]10.30min video(https://www.youtube.com/watch?v=Tuw8hxrFBH8)
+Upload video to transcript saved Time required 98.34 second
+(T5)Model selected to summary ready Time required 28.93 seconds
+(BART)Model selected to summary ready I required 57.63 seconds
+(PEGASUS)Model selected to summary ready Time required 116.93 seconds
+
+3]1hr video(https://www.youtube.com/watch?v=2TkB_yr7nCc&t=6s)
+Upload video to transcript saved Time required 6.65 min
+(T5)Model selected to summary ready Time required 1.6min
+(BART)Model selected to summary ready I required 4.37min
+(PEGASUS)Model selected to summary ready Time required 11.6min
+
+4]6hrvideo(https://www.youtube.com/watch?v=enNy7_eu6GQ&t=1s)
+Upload video to transcript saved Time required 71.60min
+(T5)Model selected to summary ready Time required
+(BART)Model selected to summary ready I required 
+(PEGASUS)Model selected to summary ready Time required 

@@ -1,62 +1,46 @@
-import whisper
 import time
 import os
 import subprocess
 import traceback
-from datetime import datetime, timezone
-from pymongo import ReturnDocument
-from modules.thumbnail_generator import generate_thumbnail
-import subprocess
 import json
 
-
-
-
+from datetime import datetime, timezone
+from faster_whisper import WhisperModel
+from pymongo import ReturnDocument
 
 from database.mongo import jobs_collection
-from modules.summarizer import summarize_text
 from modules.blog_generator import generate_blog
+from modules.summarizer import summarize_text
+from modules.thumbnail_generator import generate_thumbnail
 
-def get_video_duration(path):
 
-    cmd = [
-        "ffprobe",
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "json",
-        path
-    ]
+def parse_utc_datetime(value):
 
-    result = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
 
-    if result.returncode != 0:
-        print("ffprobe error:", result.stderr)
-        return 0
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value)
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed
+        except ValueError:
+            return None
 
-    try:
-        data = json.loads(result.stdout)
+    return None
 
-        if "format" not in data:
-            print("No format in ffprobe output")
-            return 0
 
-        duration = float(data["format"]["duration"])
+def get_job_file_stem(job):
 
-        return duration
+    return job.get("job_slug") or job["job_id"]
 
-    except Exception as e:
-        print("Duration read error:", e)
-        return 0
 
 def download_youtube(url, output):
+
+    print(f"Downloading YouTube video from {url}")
 
     cmd = [
         "yt-dlp",
@@ -69,6 +53,8 @@ def download_youtube(url, output):
 
 
 def extract_audio(video, audio):
+
+    print(f"Extracting audio from {video} to {audio}")
 
     cmd = [
         "ffmpeg",
@@ -84,40 +70,41 @@ def extract_audio(video, audio):
 
     subprocess.run(cmd, check=True)
 
+
 def transcribe_audio(audio_path, txt_path):
 
-    print("Loading Whisper model")
+    print(f"Loading faster-whisper model for audio: {audio_path}")
 
-    model = whisper.load_model("base")
+    model = WhisperModel(
+        "base",
+        device="cpu",
+        compute_type="int8"
+    )
 
-    print("Transcribing")
+    print("faster-whisper transcription started")
+    segments, info = model.transcribe(
+        audio_path,
+        beam_size=1
+    )
 
-    result = model.transcribe(audio_path, fp16=False)
-
-    text = result.get("text", "").strip()
-
-    os.makedirs(os.path.dirname(txt_path), exist_ok=True)
+    text = " ".join(segment.text.strip() for segment in segments).strip()
 
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write(text)
 
-    if not os.path.exists(txt_path):
-        raise RuntimeError(f"Transcript file was not created: {txt_path}")
-
-    if os.path.getsize(txt_path) == 0:
-        print("Warning: transcript is empty")
+    print(f"Transcript saved to {txt_path}")
 
 
 def claim_next_job(worker_started_at):
 
+    print("Checking for next uploaded job")
     return jobs_collection.find_one_and_update(
         {
             "status": "uploaded"
         },
         {
             "$set": {
-                "status": "processing",
-                "started_at": datetime.now(timezone.utc).isoformat()
+                "status": "processing"
             }
         },
         return_document=ReturnDocument.AFTER
@@ -129,186 +116,201 @@ def process_job(job):
     try:
 
         job_id = job["job_id"]
-        status = job["status"]
+        job_file_stem = get_job_file_stem(job)
 
-        # =========================
-        # SUMMARY STEP
-        # =========================
+        # ---------- summarize ----------
 
-        if status == "summarize_requested":
+        if job["status"] == "summarize_requested":
+            print(f"Summary generation started for job {job_id}")
 
-            print("Summarizing", job_id)
+            with open(
+                job["transcript_file"],
+                "r",
+                encoding="utf-8"
+            ) as f:
 
-            txt = job["transcript_file"]
-
-            with open(txt, "r", encoding="utf-8") as f:
                 text = f.read()
 
-            model = job.get("summary_model", "t5")
+            model = job.get(
+                "summary_model",
+                "t5"
+            )
 
-            summary = summarize_text(text, model)
+            summary = summarize_text(
+                text,
+                model
+            )
 
-            out = f"jobs/{job_id}_summary_{model}.txt"
+            out = f"jobs/{job_file_stem}_summary_{model}.txt"
+            print(f"Saving summary for job {job_id} using model {model} to {out}")
 
-            if os.path.exists(out):
-                os.remove(out)
-
-            with open(out, "w", encoding="utf-8") as f:
+            with open(out, "w") as f:
                 f.write(summary)
+
+            summary_saved_at = datetime.now(timezone.utc)
+            model_selected_at = parse_utc_datetime(job.get("model_selected_at"))
+            summary_generation_seconds = None
+
+            if model_selected_at:
+                summary_generation_seconds = (
+                    summary_saved_at - model_selected_at
+                ).total_seconds()
 
             jobs_collection.update_one(
                 {"job_id": job_id},
-                {"$set": {
-                    "status": "summary_ready",
-                    "summary_file": out
-                }}
+                {
+                    "$set": {
+                        "status": "summary_ready",
+                        "summary_file": out,
+                        "summary_saved_at": summary_saved_at,
+                        "summary_generation_seconds": summary_generation_seconds
+                    }
+                }
             )
+
+            print(f"Summary ready for job {job_id}")
+            if summary_generation_seconds is not None:
+                print(
+                    f"Time from model selection to summary saved: "
+                    f"{summary_generation_seconds:.2f} seconds"
+                )
 
             return
 
+        if job["status"] == "summary_ready":
+            print(f"Blog generation started for job {job_id}")
 
-        # =========================
-        # BLOG STEP
-        # =========================
-
-        if status == "summary_ready":
-
-            print("Generating blog", job_id)
-
-            with open(job["summary_file"], "r", encoding="utf-8") as f:
+            with open(
+                job["summary_file"],
+                "r",
+                encoding="utf-8"
+            ) as f:
                 summary = f.read()
 
             blog = generate_blog(summary)
-
-            blog_path = f"jobs/{job_id}_blog.txt"
+            blog_path = f"jobs/{job_file_stem}_blog.txt"
 
             with open(blog_path, "w", encoding="utf-8") as f:
                 f.write(blog)
 
-            # get title from blog
-            title = blog.split("\n")[0]
-
-            thumb_path = f"jobs/{job_id}_thumb.png"
-
+            title = blog.split("\n")[0].strip() or "Auto Generated Blog"
+            thumb_path = f"jobs/{job_file_stem}_thumb.png"
             generate_thumbnail(title, thumb_path)
 
             jobs_collection.update_one(
                 {"job_id": job_id},
-                {"$set": {
-                    "status": "blog_ready",
-                    "blog_file": blog_path,
-                    "thumbnail": thumb_path
-                }}
+                {
+                    "$set": {
+                        "status": "blog_ready",
+                        "blog_file": blog_path,
+                        "thumbnail": thumb_path
+                    }
+                }
             )
 
+            print(f"Blog ready for job {job_id}")
             return
 
+        # ---------- normal ----------
 
-        # =========================
-        # NORMAL PIPELINE ONLY FOR NEW JOBS
-        # =========================
-
-        if status not in [
-            "uploaded",
-            "processing",
-            "downloading",
-            "extracting_audio",
-            "transcribing"
-        ]:
-            return
-
-
-        print("Processing job", job_id)
+        print(f"Processing pipeline started for job {job_id}")
 
         file_path = job["file"]
 
-        video_path = f"jobs/{job_id}"
-        
-        duration = get_video_duration(video_path)
-
-        print("Duration:", duration)
-
-        MAX_DURATION = 7200
-
-        if duration and duration > MAX_DURATION:
-
-            jobs_collection.update_one(
-                {"job_id": job_id},
-                {"$set": {
-                    "status": "error",
-                    "error_message": "Video too long (max 2 hours)"
-                }}
-            )
-
-            return
-        audio_path = f"jobs/{job_id}.wav"
-        txt_path = f"jobs/{job_id}.txt"
-
-
-        # ---- download ----
+        video_path = f"jobs/{job_file_stem}"
+        audio_path = f"jobs/{job_file_stem}.wav"
+        txt_path = f"jobs/{job_file_stem}.txt"
 
         if file_path.startswith("http"):
+            print(f"Job {job_id} is a YouTube URL")
 
             jobs_collection.update_one(
                 {"job_id": job_id},
                 {"$set": {"status": "downloading"}}
             )
 
-            download_youtube(file_path, video_path)
+            download_youtube(
+                file_path,
+                video_path
+            )
 
             import glob
 
-            files = glob.glob(f"jobs/{job_id}.*")
+            files = glob.glob(
+                f"jobs/{job_file_stem}.*"
+            )
 
             for f in files:
-                if f.endswith(".mp4") or f.endswith(".webm") or f.endswith(".mkv"):
+                if f.endswith(".mp4") or f.endswith(".webm"):
                     video_path = f
+                    print(f"Downloaded video path resolved to {video_path}")
                     break
 
         else:
             video_path = file_path
-
-
-        # ---- extract ----
+            print(f"Job {job_id} is using uploaded file {video_path}")
 
         jobs_collection.update_one(
             {"job_id": job_id},
             {"$set": {"status": "extracting_audio"}}
         )
 
-        extract_audio(video_path, audio_path)
-
-
-        # ---- transcribe ----
+        extract_audio(
+            video_path,
+            audio_path
+        )
 
         jobs_collection.update_one(
             {"job_id": job_id},
             {"$set": {"status": "transcribing"}}
         )
 
-        transcribe_audio(audio_path, txt_path)
+        transcribe_audio(
+            audio_path,
+            txt_path
+        )
 
+        transcript_saved_at = datetime.now(timezone.utc)
+        uploaded_at = parse_utc_datetime(job.get("uploaded_at"))
+        upload_to_transcript_seconds = None
+
+        if uploaded_at:
+            upload_to_transcript_seconds = (
+                transcript_saved_at - uploaded_at
+            ).total_seconds()
 
         jobs_collection.update_one(
             {"job_id": job_id},
-            {"$set": {
-                "status": "waiting_for_model",
-                "transcript_file": txt_path
-            }}
+            {
+                "$set": {
+                    "status": "waiting_for_model",
+                    "transcript_file": txt_path,
+                    "transcript_saved_at": transcript_saved_at,
+                    "upload_to_transcript_seconds": upload_to_transcript_seconds
+                }
+            }
         )
 
+        print(f"Transcript ready for job {job_id}")
+        if upload_to_transcript_seconds is not None:
+            print(
+                f"Time from upload/YouTube URL to transcript saved: "
+                f"{upload_to_transcript_seconds:.2f} seconds"
+            )
 
     except Exception as e:
 
-        print("ERROR IN WORKER:", e)
+        print(f"ERROR in job {job.get('job_id')}: {e}")
         print(traceback.format_exc())
 
         jobs_collection.update_one(
             {"job_id": job["job_id"]},
-            {"$set": {
-                "status": "error",
-                "error_message": str(e)
-            }}
+            {
+                "$set": {
+                    "status": "error",
+                    "error_message": str(e)
+                }
+            }
         )
 
 
@@ -320,20 +322,24 @@ def worker_loop():
 
     while True:
 
-        job = None
-
-        job = claim_next_job(worker_started_at)
-
-        if not job:
-            job = jobs_collection.find_one({"status": "summarize_requested"})
+        job = claim_next_job(
+            worker_started_at
+        )
 
         if not job:
-            job = jobs_collection.find_one({"status": "summary_ready"})
+            job = jobs_collection.find_one(
+                {"status": "summarize_requested"}
+            )
 
         if not job:
-            job = jobs_collection.find_one({"status": "waiting_for_model"})
+            job = jobs_collection.find_one(
+                {"status": "summary_ready"}
+            )
 
         if job:
+            print(
+                f"Worker picked job {job['job_id']} with status {job['status']}"
+            )
             process_job(job)
 
-        time.sleep(2)
+        time.sleep(3)
