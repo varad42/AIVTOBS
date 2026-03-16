@@ -1,41 +1,69 @@
-<h2>Your Video History</h2>
+{% extends "base.html" %}
 
-<tr>
-<th>Video</th>
-<th>Status</th>
-<th>Model</th>
-<th>Created</th>
-<th>Finished</th>
-<th>Duration</th>
-<th>Blog</th>
-</tr>
+{% block title %}History | AI Video Studio{% endblock %}
 
-{% for job in jobs %}
+{% block content %}
+<section class="table-panel">
+    <div class="section-header">
+        <div>
+            <p class="auth-eyebrow">Archive</p>
+            <h1 class="section-title">Your Video History</h1>
+            <p class="section-subtitle">Review status, model choices, and downloadable outputs for all previous jobs.</p>
+        </div>
+        <a href="/upload" class="btn-secondary">New upload</a>
+    </div>
 
-<tr>
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Video</th>
+                <th>Status</th>
+                <th>Transcription</th>
+                <th>Model</th>
+                <th>Summary</th>
+                <th>Blog</th>
+            </tr>
 
-<td>{{ job.file }}</td>
-
-<td>{{ job.status }}</td>
-
-<td>{{ job.model_used }}</td>
-
-<td>{{ job.created_at }}</td>
-
-<td>{{ job.finished_at }}</td>
-
-<td>{{ job.duration }}</td>
-
-<td>
-
-{% if job.status == "blog_ready" %}
-<a href="/blog/{{ job.job_id }}">View</a>
-{% endif %}
-
-</td>
-
-</tr>
-
-{% endfor %}
-
-</table>
+            {% for job in jobs %}
+            <tr>
+                <td>{{ job.file }}</td>
+                <td><span class="status-pill">{{ job.status }}</span></td>
+                <td>
+                    {{ job.get("transcription_provider", "whisper") }}
+                    {% if job.get("transcription_provider") == "deepgram" %}
+                    ({{ job.get("deepgram_model", "nova-3") }})
+                    {% endif %}
+                </td>
+                <td>{{ job.get("summary_model", "-") }}</td>
+                <td>
+                    {% if job.get("summary_file") %}
+                    <div class="chip-row">
+                        <a class="chip-button" href="/summary/{{ job.job_id }}">View</a>
+                        <a class="chip-button" href="/download_summary/{{ job.job_id }}">Download</a>
+                    </div>
+                    {% else %}
+                    <span class="meta-text">Pending</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.status == "blog_ready" %}
+                    <div class="chip-row">
+                        <a class="chip-button" href="/blog/{{ job.job_id }}">View</a>
+                        <a class="chip-button" href="/download_blog/{{ job.job_id }}">Download</a>
+                    </div>
+                    {% else %}
+                    <span class="meta-text">Pending</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">
+                    <div class="empty-state">No jobs yet. Upload your first video to start building summaries and blogs.</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+{% endblock %}

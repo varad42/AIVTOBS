@@ -1,29 +1,41 @@
-<h2>Register</h2>
+{% extends "base.html" %}
+{% set page_class = "auth-page" %}
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-  {% for category, message in messages %}
-  <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #ccc;">
-    <strong>{{ category|capitalize }}:</strong> {{ message }}
-  </div>
-  {% endfor %}
-{% endif %}
-{% endwith %}
+{% block title %}Register | AI Video Studio{% endblock %}
 
-<form method="POST">
+{% block content %}
+<section class="auth-card">
+    <p class="auth-eyebrow">New account</p>
+    <h1 class="auth-title">Create Access</h1>
+    <p class="auth-subtitle">Set up your workspace to summarize long videos and generate blog content with a single flow.</p>
 
-<input name="email" type="email" placeholder="Email" value="{{ email or '' }}">
+    <form method="POST" class="auth-form">
+        <div class="field-stack">
+            <label class="pill-field">
+                <span class="field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21a8 8 0 0 0-16 0"></path>
+                        <circle cx="12" cy="8" r="4"></circle>
+                    </svg>
+                </span>
+                <input name="email" type="email" placeholder="Email address" value="{{ email or '' }}" required>
+            </label>
 
-<br><br>
+            <label class="pill-field trailing-icon">
+                <input name="password" type="password" placeholder="Password (min 8 characters)" required>
+                <span class="field-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3l7 4v5c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V7l7-4z"></path>
+                    </svg>
+                </span>
+            </label>
+        </div>
 
-<input name="password" type="password" placeholder="Password (min 8 characters)">
+        <button type="submit" class="btn-primary" style="width: 100%;">Register</button>
+    </form>
 
-<br><br>
-
-<button type="submit">Register</button>
-
-</form>
-
-<br>
-
-<a href="/">Back to login</a>
+    <div class="auth-links">
+        <a href="/" class="ghost-link">Back to login</a>
+    </div>
+</section>
+{% endblock %}

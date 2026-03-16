@@ -1,66 +1,11 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
+{% block title %}Processing | AI Video Studio{% endblock %}
 
-<title>Processing</title>
-
+{% block content %}
 <meta http-equiv="refresh" content="3">
 
-<style>
-
-body{
-font-family:Arial;
-margin:40px;
-}
-
-.progress-bar{
-width:100%;
-height:25px;
-background:#ddd;
-}
-
-.progress{
-height:100%;
-background:green;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<h2>Processing Job</h2>
-
-<p>Job ID: {{ job.job_id }}</p>
-<p>Job Name: {{ job.get("job_slug", job.job_id) }}</p>
-
-<p>Status: {{ job.status }}</p>
-
-<h3>Timings</h3>
-
-<p>
-YouTube/upload to transcript saved:
-{% if job.get("upload_to_transcript_seconds") is not none %}
-{{ format_seconds(job.get("upload_to_transcript_seconds")) }}
-{% else %}
-Pending
-{% endif %}
-</p>
-
-<p>
-Selected model to summary saved:
-{% if job.get("summary_generation_seconds") is not none %}
-{{ format_seconds(job.get("summary_generation_seconds")) }}
-{% else %}
-Pending
-{% endif %}
-</p>
-
-
 {% set progress = 5 %}
-
 {% if job.status == "downloading" %}
 {% set progress = 20 %}
 {% elif job.status == "extracting_audio" %}
@@ -71,22 +16,78 @@ Pending
 {% set progress = 80 %}
 {% elif job.status == "summary_ready" %}
 {% set progress = 100 %}
+{% elif job.status == "blog_ready" %}
+{% set progress = 100 %}
 {% endif %}
 
+<section class="two-column">
+    <div class="content-panel">
+        <div class="section-header">
+            <div>
+                <p class="auth-eyebrow">Live status</p>
+                <h1 class="section-title">Processing Job</h1>
+                <p class="section-subtitle">This page refreshes automatically every 3 seconds while the job is in motion.</p>
+            </div>
+            <span class="status-pill">{{ job.status }}</span>
+        </div>
 
-<div class="progress-bar">
-<div class="progress" style="width: {{ progress }}%"></div>
-</div>
+        <div class="metric-list">
+            <div class="metric">
+                <span>Job ID</span>
+                <strong>{{ job.job_id }}</strong>
+            </div>
+            <div class="metric">
+                <span>Job Name</span>
+                <strong>{{ job.get("job_slug", job.job_id) }}</strong>
+            </div>
+            <div class="metric">
+                <span>Transcription Provider</span>
+                <strong>{{ job.get("transcription_provider", "whisper") }}</strong>
+            </div>
+            <div class="metric">
+                <span>Deepgram Model</span>
+                <strong>{% if job.get("transcription_provider") == "deepgram" %}{{ job.get("deepgram_model", "nova-3") }}{% else %}Not in use{% endif %}</strong>
+            </div>
+        </div>
 
+        <div style="margin-top: 24px;">
+            <div class="section-header" style="margin-bottom: 12px;">
+                <h2 class="card-title">Progress</h2>
+                <span>{{ progress }}%</span>
+            </div>
+            <div class="pill-progress">
+                <span style="width: {{ progress }}%;"></span>
+            </div>
+        </div>
 
-{% if job.status == "waiting_for_model" %}
+        <div class="action-row" style="margin-top: 24px;">
+            {% if job.status == "waiting_for_model" %}
+            <a class="btn-primary" href="/select_model/{{ job.job_id }}">Select Model</a>
+            {% endif %}
 
-<a href="/select_model/{{ job.job_id }}">
-Select Model
-</a>
+            {% if job.get("summary_file") %}
+            <a class="btn-secondary" href="/summary/{{ job.job_id }}">View Summary</a>
+            <a class="btn-ghost" href="/download_summary/{{ job.job_id }}">Download Summary</a>
+            {% endif %}
 
-{% endif %}
+            {% if job.get("blog_file") %}
+            <a class="btn-secondary" href="/blog/{{ job.job_id }}">View Blog</a>
+            <a class="btn-ghost" href="/download_blog/{{ job.job_id }}">Download Blog</a>
+            {% endif %}
+        </div>
+    </div>
 
-
-</body>
-</html>
+    <aside class="stat-panel">
+        <h2 class="card-title">Timings</h2>
+        <div class="metric">
+            <span>Upload to transcript saved</span>
+            <strong>{% if job.get("upload_to_transcript_seconds") is not none %}{{ format_seconds(job.get("upload_to_transcript_seconds")) }}{% else %}Pending{% endif %}</strong>
+        </div>
+        <div class="metric">
+            <span>Model selection to summary saved</span>
+            <strong>{% if job.get("summary_generation_seconds") is not none %}{{ format_seconds(job.get("summary_generation_seconds")) }}{% else %}Pending{% endif %}</strong>
+        </div>
+        <p class="card-copy">Keep this page open until summary generation finishes. Once it is ready, the next actions appear automatically.</p>
+    </aside>
+</section>
+{% endblock %}

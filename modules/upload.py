@@ -1,11 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, session
+from flask import Blueprint, render_template, request, redirect, session, flash
 import os
 import re
 import uuid
 from urllib.parse import urlparse
 from datetime import datetime, timezone
 
-from config import UPLOAD_FOLDER
+from config import DEEPGRAM_API_KEY, UPLOAD_FOLDER
 from database.mongo import jobs_collection
 
 upload_bp = Blueprint("upload", __name__)
@@ -44,10 +44,27 @@ def upload():
         print("Upload blocked: no active session")
         return redirect("/")
 
+    if request.method == "GET":
+        return redirect("/dashboard")
+
     if request.method == "POST":
 
         video = request.files.get("video")
         youtube_url = request.form.get("youtube")
+        transcription_provider = request.form.get("transcription_provider", "whisper")
+        deepgram_model = request.form.get("deepgram_model", "nova-3")
+
+        if transcription_provider not in {"whisper", "deepgram"}:
+            flash("Choose a valid transcription provider before continuing.", "error")
+            return redirect("/dashboard")
+
+        if deepgram_model not in {"base", "nova-3"}:
+            flash("Choose a valid Deepgram model before continuing.", "error")
+            return redirect("/dashboard")
+
+        if transcription_provider == "deepgram" and not DEEPGRAM_API_KEY:
+            flash("Deepgram is not configured yet. Add `DEEPGRAM_API_KEY` in your `.env` file to use it.", "error")
+            return redirect("/dashboard")
 
         job_id = str(uuid.uuid4())
         job_slug = build_job_slug(
@@ -76,7 +93,8 @@ def upload():
 
         else:
             print("Upload failed: no video file or YouTube URL provided")
-            return "No input"
+            flash("Add a video file or YouTube URL before starting processing.", "error")
+            return redirect("/dashboard")
 
         job_data = {
 
@@ -87,6 +105,8 @@ def upload():
             "status": "uploaded",
             "uploaded_at": datetime.now(timezone.utc),
             "queued_at": datetime.now(timezone.utc),
+            "transcription_provider": transcription_provider,
+            "deepgram_model": deepgram_model,
             "summary_model": None,
             "blog": None
 
@@ -96,5 +116,4 @@ def upload():
         print(f"Job created: {job_id} ({job_slug})")
 
         return redirect(f"/processing/{job_id}")
-
-    return render_template("upload.html")
+    return redirect("/dashboard")

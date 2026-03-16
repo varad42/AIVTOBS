@@ -1,13 +1,52 @@
-<h2>Select summarization model</h2>
+{% extends "base.html" %}
 
-<form method="POST">
+{% block title %}Select Model | AI Video Studio{% endblock %}
 
-<input type="radio" name="model" value="t5"> T5<br>
-<input type="radio" name="model" value="distilbart"> DistilBART<br>
-<input type="radio" name="model" value="bart"> BART<br>
+{% block content %}
+<section class="two-column">
+    <div class="content-panel">
+        <p class="auth-eyebrow">Model selection</p>
+        <h1 class="section-title">Choose a summarization model</h1>
+        <p class="section-subtitle">Pick the model you want for job <strong>{{ job.job_id }}</strong>. Once selected, summary generation starts immediately.</p>
 
-<br>
+        <form method="POST" class="surface-form">
+            <div class="choice-grid">
+                <label class="choice-card">
+                    <input type="radio" name="model" value="t5" checked>
+                    <span>
+                        <strong>T5</strong>
+                        <span class="card-copy">Solid general-purpose summarization baseline.</span>
+                    </span>
+                </label>
+                <label class="choice-card">
+                    <input type="radio" name="model" value="distilbart">
+                    <span>
+                        <strong>DistilBART</strong>
+                        <span class="card-copy">A lighter BART variant that can be a good speed compromise.</span>
+                    </span>
+                </label>
+                <label class="choice-card">
+                    <input type="radio" name="model" value="bart">
+                    <span>
+                        <strong>BART</strong>
+                        <span class="card-copy">Use when you want a stronger summarization model and can wait a bit longer.</span>
+                    </span>
+                </label>
+            </div>
 
-<button type="submit">Generate Summary</button>
+            <div class="button-row">
+                <button type="submit" class="btn-primary">Generate Summary</button>
+                <a href="/processing/{{ job.job_id }}" class="btn-secondary">Back to processing</a>
+            </div>
+        </form>
+    </div>
 
-</form>
+    <aside class="stat-panel">
+        <div class="stat-block">
+            <span class="auth-eyebrow">Current job</span>
+            <strong>{{ job.get("job_slug", job.job_id) }}</strong>
+            <p class="card-copy">The model you choose here is stored with the job and shown later on the summary and blog pages.</p>
+        </div>
+    </aside>
+</section>
+{% endblock %}

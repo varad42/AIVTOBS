@@ -8,6 +8,7 @@ from config import SECRET_KEY
 from modules.model_select import model_bp
 from modules.blog import blog_bp
 from modules.history import history_bp
+from database.mongo import jobs_collection
 
 from auth.login import login_bp
 from auth.register import register_bp
@@ -34,9 +35,37 @@ app.register_blueprint(history_bp)
 def dashboard():
 
     if "user" not in session:
-        return redirect("/")
+        return render_template(
+            "dashboard.html",
+            show_login=True,
+            email="",
+            jobs=[],
+            summary_ready_count=0,
+            blog_ready_count=0,
+            selected_provider="whisper",
+            selected_deepgram_model="nova-3"
+        )
 
-    return render_template("dashboard.html")
+    jobs = list(jobs_collection.find({"user": session["user"]}).sort("_id", -1).limit(8))
+    summary_ready_count = sum(1 for job in jobs if job.get("summary_file"))
+    blog_ready_count = sum(1 for job in jobs if job.get("blog_file"))
+
+    return render_template(
+        "dashboard.html",
+        show_login=False,
+        jobs=jobs,
+        summary_ready_count=summary_ready_count,
+        blog_ready_count=blog_ready_count,
+        selected_provider="whisper",
+        selected_deepgram_model="nova-3"
+    )
+
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+    return redirect("/")
 
     
 if __name__ == "__main__":

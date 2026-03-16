@@ -18,11 +18,29 @@ def login():
 
         if not email or not password:
             flash("Enter both email and password before logging in.", "error")
-            return render_template("login.html", email=email)
+            return render_template(
+                "dashboard.html",
+                show_login=True,
+                email=email,
+                jobs=[],
+                summary_ready_count=0,
+                blog_ready_count=0,
+                selected_provider="whisper",
+                selected_deepgram_model="nova-3"
+            )
 
         if not is_valid_email(email):
             flash("That email address does not look valid. Check the format and try again.", "error")
-            return render_template("login.html", email=email)
+            return render_template(
+                "dashboard.html",
+                show_login=True,
+                email=email,
+                jobs=[],
+                summary_ready_count=0,
+                blog_ready_count=0,
+                selected_provider="whisper",
+                selected_deepgram_model="nova-3"
+            )
 
         user = users_collection.find_one({"email": email})
         stored_password = user.get("password") if user else None
@@ -34,13 +52,49 @@ def login():
 
         if not user:
             flash("No account was found for that email. Register first or try another email.", "error")
-            return render_template("login.html", email=email)
+            return render_template(
+                "dashboard.html",
+                show_login=True,
+                email=email,
+                jobs=[],
+                summary_ready_count=0,
+                blog_ready_count=0,
+                selected_provider="whisper",
+                selected_deepgram_model="nova-3"
+            )
 
         if user.get("auth_provider") == "google" and not stored_password:
             flash("This account uses Google sign-in. Click Continue with Google to log in.", "error")
-            return render_template("login.html", email=email)
+            return render_template(
+                "dashboard.html",
+                show_login=True,
+                email=email,
+                jobs=[],
+                summary_ready_count=0,
+                blog_ready_count=0,
+                selected_provider="whisper",
+                selected_deepgram_model="nova-3"
+            )
 
         flash("Incorrect password. Try again or use Forgot password to reset it.", "error")
-        return render_template("login.html", email=email)
+        return render_template(
+            "dashboard.html",
+            show_login=True,
+            email=email,
+            jobs=[],
+            summary_ready_count=0,
+            blog_ready_count=0,
+            selected_provider="whisper",
+            selected_deepgram_model="nova-3"
+        )
 
-    return render_template("login.html", email="")
+    return render_template(
+        "dashboard.html",
+        show_login=True,
+        email="",
+        jobs=[],
+        summary_ready_count=0,
+        blog_ready_count=0,
+        selected_provider="whisper",
+        selected_deepgram_model="nova-3"
+    )
