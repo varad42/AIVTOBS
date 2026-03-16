@@ -2,13 +2,6 @@ from transformers import pipeline
 
 
 def get_pipeline(model_name):
-
-    if model_name == "t5_small":
-        return pipeline(
-            "summarization",
-            model="t5-small"
-        )
-
     if model_name == "t5":
         return pipeline(
             "summarization",
@@ -27,19 +20,13 @@ def get_pipeline(model_name):
             model="facebook/bart-large-cnn"
         )
 
-    if model_name == "pegasus":
-        return pipeline(
-            "summarization",
-            model="google/pegasus-xsum"
-        )
-
     return pipeline(
         "summarization",
         model="t5-small"
     )
 
 
-def split_text(text, chunk_size=1800):
+def split_text(text, chunk_size=1800, overlap_words=40):
 
     words = text.split()
 
@@ -47,23 +34,34 @@ def split_text(text, chunk_size=1800):
         return []
 
     chunks = []
-    current_chunk = []
-    current_length = 0
+    start_index = 0
 
-    for word in words:
-        word_length = len(word) + 1
+    while start_index < len(words):
+        current_chunk = []
+        current_length = 0
+        index = start_index
 
-        if current_chunk and current_length + word_length > chunk_size:
-            chunks.append(" ".join(current_chunk))
-            current_chunk = [word]
-            current_length = word_length
-            continue
+        while index < len(words):
+            word = words[index]
+            word_length = len(word) + 1
 
-        current_chunk.append(word)
-        current_length += word_length
+            if current_chunk and current_length + word_length > chunk_size:
+                break
 
-    if current_chunk:
+            current_chunk.append(word)
+            current_length += word_length
+            index += 1
+
+        if not current_chunk:
+            current_chunk.append(words[index])
+            index += 1
+
         chunks.append(" ".join(current_chunk))
+
+        if index >= len(words):
+            break
+
+        start_index = max(index - overlap_words, start_index + 1)
 
     return chunks
 
@@ -85,13 +83,4 @@ def summarize_text(text, model_name):
         )
         partial_summaries.append(result[0]["summary_text"])
 
-    if len(partial_summaries) == 1:
-        return partial_summaries[0]
-
-    combined_text = " ".join(partial_summaries)
-    final_result = pipe(
-        combined_text,
-        do_sample=False
-    )
-
-    return final_result[0]["summary_text"]
+    return "\n\n".join(partial_summaries)

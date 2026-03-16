@@ -11,6 +11,8 @@ from modules.history import history_bp
 
 from auth.login import login_bp
 from auth.register import register_bp
+from auth.password_reset import password_reset_bp
+from auth.google_auth import google_auth_bp
 from modules.upload import upload_bp
 from modules.processing import processing_bp
 
@@ -20,6 +22,8 @@ app.secret_key = SECRET_KEY
 
 app.register_blueprint(login_bp)
 app.register_blueprint(register_bp)
+app.register_blueprint(password_reset_bp)
+app.register_blueprint(google_auth_bp)
 app.register_blueprint(upload_bp)
 app.register_blueprint(processing_bp)
 app.register_blueprint(model_bp)
@@ -34,7 +38,7 @@ def dashboard():
 
     return render_template("dashboard.html")
 
-
+    
 if __name__ == "__main__":
     debug = True
 
