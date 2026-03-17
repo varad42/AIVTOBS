@@ -1,14 +1,16 @@
 from flask import Blueprint, render_template, request, redirect, session, flash
 import os
 import re
+import time
 import uuid
 from urllib.parse import urlparse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from config import DEEPGRAM_API_KEY, UPLOAD_FOLDER
 from database.mongo import jobs_collection
 
 upload_bp = Blueprint("upload", __name__)
+DEDUPLICATION_WINDOW_MINUTES = 1
 
 
 def slugify(value):
@@ -33,6 +35,39 @@ def build_job_slug(video_filename, youtube_url, job_id):
     short_id = job_id.split("-")[0]
 
     return f"{slugify(source_name)}_{timestamp}_{short_id}"
+
+
+def find_recent_duplicate_job(user, source_type, source_identifier, transcription_provider, deepgram_model):
+
+    if not source_identifier:
+        return None
+
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=DEDUPLICATION_WINDOW_MINUTES)
+
+    return jobs_collection.find_one(
+        {
+            "user": user,
+            "source_type": source_type,
+            "file": source_identifier,
+            "transcription_provider": transcription_provider,
+            "deepgram_model": deepgram_model,
+            "status": {
+                "$in": [
+                    "uploaded",
+                    "processing",
+                    "downloading",
+                    "extracting_audio",
+                    "transcribing",
+                    "waiting_for_model",
+                    "summarize_requested",
+                    "summary_ready",
+                    "blog_ready"
+                ]
+            },
+            "uploaded_at": {"$gte": cutoff}
+        },
+        sort=[("_id", -1)]
+    )
 
 
 @upload_bp.route("/upload", methods=["GET", "POST"])
@@ -74,22 +109,56 @@ def upload():
         )
 
         file_path = ""
+        source_type = "youtube"
+        local_upload_seconds = None
+        source_identifier = ""
 
         if video and video.filename != "":
             print(f"Video file received: {video.filename}")
+            source_type = "local"
 
             file_path = os.path.join(
                 UPLOAD_FOLDER,
                 video.filename
             )
 
+            source_identifier = file_path
+            duplicate_job = find_recent_duplicate_job(
+                session["user"],
+                source_type,
+                source_identifier,
+                transcription_provider,
+                deepgram_model
+            )
+
+            if duplicate_job:
+                print(f"Duplicate local upload detected, reusing job {duplicate_job['job_id']}")
+                flash("A recent job for this file already exists. Reusing that job instead of starting a duplicate.", "info")
+                return redirect(f"/processing/{duplicate_job['job_id']}")
+
+            local_upload_started_at = time.perf_counter()
             video.save(file_path)
+            local_upload_seconds = time.perf_counter() - local_upload_started_at
             print(f"Video saved to: {file_path}")
 
         elif youtube_url:
             print(f"YouTube URL received: {youtube_url}")
 
             file_path = youtube_url
+            source_identifier = file_path
+
+            duplicate_job = find_recent_duplicate_job(
+                session["user"],
+                source_type,
+                source_identifier,
+                transcription_provider,
+                deepgram_model
+            )
+
+            if duplicate_job:
+                print(f"Duplicate YouTube job detected, reusing job {duplicate_job['job_id']}")
+                flash("A recent job for this URL already exists. Reusing that job instead of starting a duplicate.", "info")
+                return redirect(f"/processing/{duplicate_job['job_id']}")
 
         else:
             print("Upload failed: no video file or YouTube URL provided")
@@ -102,9 +171,11 @@ def upload():
             "job_slug": job_slug,
             "user": session["user"],
             "file": file_path,
+            "source_type": source_type,
             "status": "uploaded",
             "uploaded_at": datetime.now(timezone.utc),
             "queued_at": datetime.now(timezone.utc),
+            "local_upload_seconds": local_upload_seconds,
             "transcription_provider": transcription_provider,
             "deepgram_model": deepgram_model,
             "summary_model": None,

@@ -1,29 +1,33 @@
 from transformers import pipeline
 
+_PIPELINE_CACHE = {}
 
-def get_pipeline(model_name):
+
+def _resolve_model_id(model_name):
     if model_name == "t5":
-        return pipeline(
-            "summarization",
-            model="t5-small"
-        )
+        return "t5-small"
 
     if model_name == "distilbart":
-        return pipeline(
-            "summarization",
-            model="sshleifer/distilbart-cnn-12-6"
-        )
+        return "sshleifer/distilbart-cnn-12-6"
 
     if model_name == "bart":
-        return pipeline(
+        return "facebook/bart-large-cnn"
+
+    return "t5-small"
+
+
+def get_pipeline(model_name):
+    resolved_model_name = model_name or "t5"
+    model_id = _resolve_model_id(resolved_model_name)
+
+    if resolved_model_name not in _PIPELINE_CACHE:
+        print(f"Loading summarization pipeline into memory: {model_id}")
+        _PIPELINE_CACHE[resolved_model_name] = pipeline(
             "summarization",
-            model="facebook/bart-large-cnn"
+            model=model_id
         )
 
-    return pipeline(
-        "summarization",
-        model="t5-small"
-    )
+    return _PIPELINE_CACHE[resolved_model_name]
 
 
 def split_text(text, chunk_size=1800, overlap_words=40):

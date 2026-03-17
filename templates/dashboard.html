@@ -67,7 +67,7 @@
                 </div>
             </div>
 
-            <form method="POST" action="/upload" enctype="multipart/form-data" class="surface-form">
+            <form method="POST" action="/upload" enctype="multipart/form-data" class="surface-form" id="dashboardUploadForm">
                 <label class="surface-label">
                     Video file
                     <span class="file-input-shell">
@@ -110,7 +110,7 @@
                 </label>
 
                 <div class="button-row">
-                    <button type="submit" class="btn-primary">Process video</button>
+                    <button type="submit" class="btn-primary" id="dashboardUploadButton">Process video</button>
                 </div>
             </form>
         </section>
@@ -124,6 +124,16 @@
         toggle.addEventListener("click", function () {
             sidebar.classList.toggle("is-open");
             toggle.textContent = sidebar.classList.contains("is-open") ? "Hide" : "Slide In";
+        });
+    }
+
+    const dashboardUploadForm = document.getElementById("dashboardUploadForm");
+    const dashboardUploadButton = document.getElementById("dashboardUploadButton");
+
+    if (dashboardUploadForm && dashboardUploadButton) {
+        dashboardUploadForm.addEventListener("submit", function () {
+            dashboardUploadButton.disabled = true;
+            dashboardUploadButton.textContent = "Starting...";
         });
     }
 </script>

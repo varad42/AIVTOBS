@@ -13,7 +13,7 @@
             </div>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="surface-form">
+        <form method="POST" enctype="multipart/form-data" class="surface-form" id="uploadForm">
             <label class="surface-label">
                 Video file
                 <span class="file-input-shell">
@@ -56,7 +56,7 @@
             </label>
 
             <div class="button-row">
-                <button type="submit" class="btn-primary">Process video</button>
+                <button type="submit" class="btn-primary" id="uploadButton">Process video</button>
                 <a href="/dashboard" class="btn-secondary">Back to dashboard</a>
             </div>
         </form>
@@ -78,4 +78,16 @@
         </div>
     </aside>
 </section>
+
+<script>
+    const uploadForm = document.getElementById("uploadForm");
+    const uploadButton = document.getElementById("uploadButton");
+
+    if (uploadForm && uploadButton) {
+        uploadForm.addEventListener("submit", function () {
+            uploadButton.disabled = true;
+            uploadButton.textContent = "Starting...";
+        });
+    }
+</script>
 {% endblock %}
