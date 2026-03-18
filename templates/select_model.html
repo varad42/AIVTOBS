@@ -11,27 +11,15 @@
 
         <form method="POST" class="surface-form">
             <div class="choice-grid">
-                <label class="choice-card">
-                    <input type="radio" name="model" value="t5" checked>
+                {% for option in summary_model_options %}
+                <label class="choice-card {% if not option.enabled %}choice-card-disabled{% endif %}">
+                    <input type="radio" name="model" value="{{ option.value }}" {% if option.checked %}checked{% endif %} {% if not option.enabled %}disabled{% endif %}>
                     <span>
-                        <strong>T5</strong>
-                        <span class="card-copy">Solid general-purpose summarization baseline.</span>
+                        <strong>{{ option.label }}</strong>
+                        <span class="card-copy">{{ option.description }}</span>
                     </span>
                 </label>
-                <label class="choice-card">
-                    <input type="radio" name="model" value="distilbart">
-                    <span>
-                        <strong>DistilBART</strong>
-                        <span class="card-copy">A lighter BART variant that can be a good speed compromise.</span>
-                    </span>
-                </label>
-                <label class="choice-card">
-                    <input type="radio" name="model" value="bart">
-                    <span>
-                        <strong>BART</strong>
-                        <span class="card-copy">Use when you want a stronger summarization model and can wait a bit longer.</span>
-                    </span>
-                </label>
+                {% endfor %}
             </div>
 
             <div class="button-row">

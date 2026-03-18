@@ -51,8 +51,7 @@ def view_summary(job_id):
         "summary.html",
         summary=summary_text,
         job_id=job_id,
-        model_name=job.get("summary_model", "t5"),
-        thumbnail=job.get("thumbnail")
+        model_name=job.get("summary_model", "t5")
     )
 
 
@@ -101,8 +100,7 @@ def view_blog(job_id):
         "blog.html",
         blog=blog_text,
         job_id=job_id,
-        model_name=job.get("summary_model", "t5"),
-        thumbnail=job.get("thumbnail")
+        model_name=job.get("summary_model", "t5")
     )
 
 

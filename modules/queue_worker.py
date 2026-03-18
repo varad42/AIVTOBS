@@ -15,7 +15,6 @@ from config import DEEPGRAM_API_KEY
 from database.mongo import jobs_collection
 from modules.blog_generator import generate_blog
 from modules.summarizer import summarize_text
-from modules.thumbnail_generator import generate_thumbnail
 
 _whisper_model = None
 WHISPER_CHUNK_SECONDS = 420
@@ -318,18 +317,13 @@ def process_job(job):
             with open(blog_path, "w", encoding="utf-8") as f:
                 f.write(blog)
 
-            title = blog.split("\n")[0].strip() or "Auto Generated Blog"
-            thumb_path = f"jobs/{job_file_stem}_thumb.png"
-            generate_thumbnail(title, thumb_path)
-
             jobs_collection.update_one(
                 {"job_id": job_id},
                 {
                     "$set": {
                         "status": "blog_ready",
                         "model_used": model,
-                        "blog_file": blog_path,
-                        "thumbnail": thumb_path
+                        "blog_file": blog_path
                     }
                 }
             )
