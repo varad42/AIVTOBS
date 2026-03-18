@@ -6,7 +6,7 @@ import uuid
 from urllib.parse import urlparse
 from datetime import datetime, timedelta, timezone
 
-from config import DEEPGRAM_API_KEY, UPLOAD_FOLDER
+from config import UPLOAD_FOLDER
 from database.mongo import jobs_collection
 
 upload_bp = Blueprint("upload", __name__)
@@ -37,7 +37,7 @@ def build_job_slug(video_filename, youtube_url, job_id):
     return f"{slugify(source_name)}_{timestamp}_{short_id}"
 
 
-def find_recent_duplicate_job(user, source_type, source_identifier, transcription_provider, deepgram_model):
+def find_recent_duplicate_job(user, source_type, source_identifier):
 
     if not source_identifier:
         return None
@@ -49,8 +49,6 @@ def find_recent_duplicate_job(user, source_type, source_identifier, transcriptio
             "user": user,
             "source_type": source_type,
             "file": source_identifier,
-            "transcription_provider": transcription_provider,
-            "deepgram_model": deepgram_model,
             "status": {
                 "$in": [
                     "uploaded",
@@ -86,20 +84,6 @@ def upload():
 
         video = request.files.get("video")
         youtube_url = request.form.get("youtube")
-        transcription_provider = request.form.get("transcription_provider", "whisper")
-        deepgram_model = request.form.get("deepgram_model", "nova-3")
-
-        if transcription_provider not in {"whisper", "deepgram"}:
-            flash("Choose a valid transcription provider before continuing.", "error")
-            return redirect("/dashboard")
-
-        if deepgram_model not in {"base", "nova-3"}:
-            flash("Choose a valid Deepgram model before continuing.", "error")
-            return redirect("/dashboard")
-
-        if transcription_provider == "deepgram" and not DEEPGRAM_API_KEY:
-            flash("Deepgram is not configured yet. Add `DEEPGRAM_API_KEY` in your `.env` file to use it.", "error")
-            return redirect("/dashboard")
 
         job_id = str(uuid.uuid4())
         job_slug = build_job_slug(
@@ -126,9 +110,7 @@ def upload():
             duplicate_job = find_recent_duplicate_job(
                 session["user"],
                 source_type,
-                source_identifier,
-                transcription_provider,
-                deepgram_model
+                source_identifier
             )
 
             if duplicate_job:
@@ -150,9 +132,7 @@ def upload():
             duplicate_job = find_recent_duplicate_job(
                 session["user"],
                 source_type,
-                source_identifier,
-                transcription_provider,
-                deepgram_model
+                source_identifier
             )
 
             if duplicate_job:
@@ -176,8 +156,7 @@ def upload():
             "uploaded_at": datetime.now(timezone.utc),
             "queued_at": datetime.now(timezone.utc),
             "local_upload_seconds": local_upload_seconds,
-            "transcription_provider": transcription_provider,
-            "deepgram_model": deepgram_model,
+            "transcription_provider": "whisper",
             "summary_model": None,
             "blog": None
 

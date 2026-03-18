@@ -26,35 +26,6 @@
                 <input class="surface-input" name="youtube" placeholder="https://www.youtube.com/watch?v=...">
             </label>
 
-            <div class="surface-label">
-                Transcription provider
-                <div class="choice-grid">
-                    <label class="choice-card">
-                        <input type="radio" name="transcription_provider" value="whisper" {% if selected_provider != "deepgram" %}checked{% endif %}>
-                        <span>
-                            <strong>Faster-Whisper</strong>
-                            <span class="card-copy">Best default option for local speed and straightforward processing.</span>
-                        </span>
-                    </label>
-
-                    <label class="choice-card">
-                        <input type="radio" name="transcription_provider" value="deepgram" {% if selected_provider == "deepgram" %}checked{% endif %}>
-                        <span>
-                            <strong>Deepgram</strong>
-                            <span class="card-copy">Cloud transcription with selectable model variants.</span>
-                        </span>
-                    </label>
-                </div>
-            </div>
-
-            <label class="surface-label">
-                Deepgram model
-                <select class="surface-select" name="deepgram_model" id="deepgram_model">
-                    <option value="nova-3" {% if selected_deepgram_model != "base" %}selected{% endif %}>Nova-3 (better balance)</option>
-                    <option value="base" {% if selected_deepgram_model == "base" %}selected{% endif %}>Base (fastest)</option>
-                </select>
-            </label>
-
             <div class="button-row">
                 <button type="submit" class="btn-primary" id="uploadButton">Process video</button>
                 <a href="/dashboard" class="btn-secondary">Back to dashboard</a>
@@ -70,7 +41,7 @@
         </div>
         <div class="stat-block">
             <strong>2. Wait for transcript</strong>
-            <p class="card-copy">The job moves through download, extraction, transcription, and model selection.</p>
+            <p class="card-copy">The job moves through download, extraction, Faster-Whisper transcription, and model selection.</p>
         </div>
         <div class="stat-block">
             <strong>3. Export content</strong>

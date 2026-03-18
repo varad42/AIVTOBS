@@ -42,11 +42,7 @@
             </div>
             <div class="metric">
                 <span>Transcription Provider</span>
-                <strong>{{ job.get("transcription_provider", "whisper") }}</strong>
-            </div>
-            <div class="metric">
-                <span>Deepgram Model</span>
-                <strong>{% if job.get("transcription_provider") == "deepgram" %}{{ job.get("deepgram_model", "nova-3") }}{% else %}Not in use{% endif %}</strong>
+                <strong>faster-whisper</strong>
             </div>
         </div>
 

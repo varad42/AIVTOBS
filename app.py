@@ -41,9 +41,7 @@ def dashboard():
             email="",
             jobs=[],
             summary_ready_count=0,
-            blog_ready_count=0,
-            selected_provider="whisper",
-            selected_deepgram_model="nova-3"
+            blog_ready_count=0
         )
 
     jobs = list(jobs_collection.find({"user": session["user"]}).sort("_id", -1).limit(8))
@@ -55,9 +53,7 @@ def dashboard():
         show_login=False,
         jobs=jobs,
         summary_ready_count=summary_ready_count,
-        blog_ready_count=blog_ready_count,
-        selected_provider="whisper",
-        selected_deepgram_model="nova-3"
+        blog_ready_count=blog_ready_count
     )
 
 

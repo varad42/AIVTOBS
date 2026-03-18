@@ -33,6 +33,12 @@ def _resolve_model_id(model_name):
     if model_name == "distilbart":
         return "sshleifer/distilbart-cnn-12-6"
 
+    if model_name == "long_t5":
+        return "google/long-t5-tglobal-base"
+
+    if model_name == "led_base_16384":
+        return "allenai/led-base-16384"
+
     return "t5-small"
 
 

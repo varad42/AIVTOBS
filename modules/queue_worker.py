@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 from faster_whisper import WhisperModel
 from pymongo import ReturnDocument
 
-from config import DEEPGRAM_API_KEY
 from database.mongo import jobs_collection
 from modules.blog_generator import generate_blog
 from modules.summarizer import summarize_text
@@ -173,43 +172,9 @@ def transcribe_with_whisper(audio_path):
         chunk_dir.cleanup()
 
 
-def transcribe_with_deepgram(audio_path, model_name="nova-3"):
+def transcribe_audio(audio_path, txt_path):
 
-    if not DEEPGRAM_API_KEY:
-        raise RuntimeError("Deepgram provider selected but DEEPGRAM_API_KEY is not configured.")
-
-    print(f"Deepgram transcription started for audio: {audio_path}")
-
-    with open(audio_path, "rb") as audio_file:
-        response = requests.post(
-            "https://api.deepgram.com/v1/listen",
-            params={
-                "model": model_name,
-                "smart_format": "true"
-            },
-            headers={
-                "Authorization": f"Token {DEEPGRAM_API_KEY}",
-                "Content-Type": "audio/wav"
-            },
-            data=audio_file,
-            timeout=300
-        )
-
-    response.raise_for_status()
-    data = response.json()
-
-    try:
-        return data["results"]["channels"][0]["alternatives"][0]["transcript"].strip()
-    except (KeyError, IndexError, TypeError) as error:
-        raise RuntimeError("Deepgram transcription response did not include a transcript.") from error
-
-
-def transcribe_audio(audio_path, txt_path, provider="whisper", deepgram_model="nova-3"):
-
-    if provider == "deepgram":
-        text = transcribe_with_deepgram(audio_path, deepgram_model)
-    else:
-        text = transcribe_with_whisper(audio_path)
+    text = transcribe_with_whisper(audio_path)
 
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write(text)
@@ -266,7 +231,7 @@ def process_job(job):
             out = f"jobs/{job_file_stem}_summary_{model}.txt"
             print(f"Saving summary for job {job_id} using model {model} to {out}")
 
-            with open(out, "w") as f:
+            with open(out, "w", encoding="utf-8") as f:
                 f.write(summary)
 
             summary_saved_at = datetime.now(timezone.utc)
@@ -336,9 +301,6 @@ def process_job(job):
         print(f"Processing pipeline started for job {job_id}")
 
         file_path = job["file"]
-        provider = job.get("transcription_provider", "whisper")
-        deepgram_model = job.get("deepgram_model", "nova-3")
-
         video_path = f"jobs/{job_file_stem}"
         audio_path = f"jobs/{job_file_stem}.wav"
         txt_path = f"jobs/{job_file_stem}.txt"
@@ -410,8 +372,7 @@ def process_job(job):
             {
                 "$set": {
                     "status": "transcribing",
-                    "transcription_provider": provider,
-                    "deepgram_model": deepgram_model
+                    "transcription_provider": "whisper"
                 }
             }
         )
@@ -419,9 +380,7 @@ def process_job(job):
         transcription_started_at = time.perf_counter()
         transcribe_audio(
             audio_path,
-            txt_path,
-            provider,
-            deepgram_model
+            txt_path
         )
         transcription_seconds = time.perf_counter() - transcription_started_at
         jobs_collection.update_one(
@@ -453,8 +412,7 @@ def process_job(job):
                     "audio_extraction_seconds": audio_extraction_seconds,
                     "transcription_seconds": transcription_seconds,
                     "upload_to_transcript_seconds": upload_to_transcript_seconds,
-                    "transcription_provider": provider,
-                    "deepgram_model": deepgram_model
+                    "transcription_provider": "whisper"
                 }
             }
         )

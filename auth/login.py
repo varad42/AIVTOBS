@@ -24,9 +24,7 @@ def login():
                 email=email,
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0,
-                selected_provider="whisper",
-                selected_deepgram_model="nova-3"
+                blog_ready_count=0
             )
 
         if not is_valid_email(email):
@@ -37,9 +35,7 @@ def login():
                 email=email,
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0,
-                selected_provider="whisper",
-                selected_deepgram_model="nova-3"
+                blog_ready_count=0
             )
 
         user = users_collection.find_one({"email": email})
@@ -58,9 +54,7 @@ def login():
                 email=email,
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0,
-                selected_provider="whisper",
-                selected_deepgram_model="nova-3"
+                blog_ready_count=0
             )
 
         if user.get("auth_provider") == "google" and not stored_password:
@@ -71,9 +65,7 @@ def login():
                 email=email,
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0,
-                selected_provider="whisper",
-                selected_deepgram_model="nova-3"
+                blog_ready_count=0
             )
 
         flash("Incorrect password. Try again or use Forgot password to reset it.", "error")
@@ -83,9 +75,7 @@ def login():
             email=email,
             jobs=[],
             summary_ready_count=0,
-            blog_ready_count=0,
-            selected_provider="whisper",
-            selected_deepgram_model="nova-3"
+            blog_ready_count=0
         )
 
     return render_template(
@@ -94,7 +84,5 @@ def login():
         email="",
         jobs=[],
         summary_ready_count=0,
-        blog_ready_count=0,
-        selected_provider="whisper",
-        selected_deepgram_model="nova-3"
+        blog_ready_count=0
     )

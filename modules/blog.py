@@ -23,7 +23,14 @@ def _read_text_file(path):
     if not path or not os.path.exists(path):
         return None
 
-    with open(path, "r", encoding="utf-8") as file_handle:
+    for encoding in ("utf-8", "cp1252", "latin-1"):
+        try:
+            with open(path, "r", encoding=encoding) as file_handle:
+                return file_handle.read()
+        except UnicodeDecodeError:
+            continue
+
+    with open(path, "r", encoding="utf-8", errors="replace") as file_handle:
         return file_handle.read()
 
 

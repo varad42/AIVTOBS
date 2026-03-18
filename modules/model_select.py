@@ -22,6 +22,16 @@ SUMMARY_MODEL_OPTIONS = [
         "description": "A lighter BART variant that can be a good speed compromise.",
     },
     {
+        "value": "long_t5",
+        "label": "Long T5",
+        "description": "A long-context T5 variant that works better on larger transcripts.",
+    },
+    {
+        "value": "led_base_16384",
+        "label": "LED Base 16384",
+        "description": "Longformer Encoder Decoder tuned for long-document summarization.",
+    },
+    {
         "value": "llama_cpp",
         "label": "llama.cpp",
         "description": "Uses a local llama.cpp OpenAI-compatible server for summarization.",
