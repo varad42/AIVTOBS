@@ -2,6 +2,7 @@ import os
 
 UPLOAD_FOLDER = "uploads"
 OUTPUT_FOLDER = "outputs"
+JOBS_FOLDER = "jobs"
 
 MAX_VIDEO_SIZE = 500 * 1024 * 1024  # 500MB
 
@@ -13,3 +14,6 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 PASSWORD_RESET_HOURS = int(os.getenv("PASSWORD_RESET_HOURS", "1"))
 LLAMA_CPP_URL = os.getenv("LLAMA_CPP_URL", "http://localhost:8080")
 LLAMA_CPP_MODEL = os.getenv("LLAMA_CPP_MODEL", "local-llama")
+
+for folder in (UPLOAD_FOLDER, OUTPUT_FOLDER, JOBS_FOLDER):
+    os.makedirs(folder, exist_ok=True)
