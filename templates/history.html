@@ -22,7 +22,6 @@
                 <th>Model</th>
                 <th>Summary</th>
                 <th>Blog</th>
-                <th>Actions</th>
             </tr>
 
             {% for job in jobs %}
@@ -51,19 +50,10 @@
                     <span class="meta-text">Pending</span>
                     {% endif %}
                 </td>
-                <td>
-                    {% if job.status not in ["blog_ready", "canceled", "error"] %}
-                    <form method="post" action="/cancel_job/{{ job.job_id }}">
-                        <button class="chip-button" type="submit">Cancel</button>
-                    </form>
-                    {% else %}
-                    <span class="meta-text">-</span>
-                    {% endif %}
-                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="7">
+                <td colspan="6">
                     <div class="empty-state">No jobs yet. Upload your first video to start building summaries and blogs.</div>
                 </td>
             </tr>

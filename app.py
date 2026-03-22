@@ -70,10 +70,7 @@ def start_background_services():
     from modules.queue_worker import (
         worker_loop,
         preload_whisper_model,
-        recover_interrupted_jobs,
     )
-
-    recover_interrupted_jobs()
 
     preload_thread = threading.Thread(target=preload_whisper_model, daemon=True)
     preload_thread.start()
