@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 load_dotenv()
-from modules.queue_worker import worker_loop, preload_whisper_model, recover_interrupted_jobs
 import threading
 import os
 from flask import Flask, render_template, session, redirect
@@ -18,63 +17,79 @@ from modules.upload import upload_bp
 from modules.processing import processing_bp
 
 
-app = Flask(__name__)
-app.secret_key = SECRET_KEY
+def create_app():
 
-app.register_blueprint(login_bp)
-app.register_blueprint(register_bp)
-app.register_blueprint(password_reset_bp)
-app.register_blueprint(google_auth_bp)
-app.register_blueprint(upload_bp)
-app.register_blueprint(processing_bp)
-app.register_blueprint(model_bp)
-app.register_blueprint(blog_bp)
-app.register_blueprint(history_bp)
+    app = Flask(__name__)
+    app.secret_key = SECRET_KEY
 
-@app.route("/dashboard")
-def dashboard():
+    app.register_blueprint(login_bp)
+    app.register_blueprint(register_bp)
+    app.register_blueprint(password_reset_bp)
+    app.register_blueprint(google_auth_bp)
+    app.register_blueprint(upload_bp)
+    app.register_blueprint(processing_bp)
+    app.register_blueprint(model_bp)
+    app.register_blueprint(blog_bp)
+    app.register_blueprint(history_bp)
 
-    if "user" not in session:
+    @app.route("/dashboard")
+    def dashboard():
+
+        if "user" not in session:
+            return render_template(
+                "dashboard.html",
+                show_login=True,
+                email="",
+                jobs=[],
+                summary_ready_count=0,
+                blog_ready_count=0
+            )
+
+        jobs = list(jobs_collection.find({"user": session["user"]}).sort("_id", -1).limit(8))
+        summary_ready_count = sum(1 for job in jobs if job.get("summary_file"))
+        blog_ready_count = sum(1 for job in jobs if job.get("blog_file"))
+
         return render_template(
             "dashboard.html",
-            show_login=True,
-            email="",
-            jobs=[],
-            summary_ready_count=0,
-            blog_ready_count=0
+            show_login=False,
+            jobs=jobs,
+            summary_ready_count=summary_ready_count,
+            blog_ready_count=blog_ready_count
         )
 
-    jobs = list(jobs_collection.find({"user": session["user"]}).sort("_id", -1).limit(8))
-    summary_ready_count = sum(1 for job in jobs if job.get("summary_file"))
-    blog_ready_count = sum(1 for job in jobs if job.get("blog_file"))
+    @app.route("/logout")
+    def logout():
 
-    return render_template(
-        "dashboard.html",
-        show_login=False,
-        jobs=jobs,
-        summary_ready_count=summary_ready_count,
-        blog_ready_count=blog_ready_count
+        session.clear()
+        return redirect("/")
+
+    return app
+
+
+def start_background_services():
+    from modules.queue_worker import (
+        worker_loop,
+        preload_whisper_model,
+        recover_interrupted_jobs,
     )
 
+    recover_interrupted_jobs()
 
-@app.route("/logout")
-def logout():
+    preload_thread = threading.Thread(target=preload_whisper_model, daemon=True)
+    preload_thread.start()
 
-    session.clear()
-    return redirect("/")
+    thread = threading.Thread(target=worker_loop, daemon=True)
+    thread.start()
 
-    
+
+app = create_app()
+
+
 if __name__ == "__main__":
-    debug = True
+    debug = os.getenv("FLASK_DEBUG", "true").lower() == "true"
 
     # Prevent duplicate worker threads when Flask debug reloader is enabled.
     if (not debug) or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        recover_interrupted_jobs()
-
-        preload_thread = threading.Thread(target=preload_whisper_model, daemon=True)
-        preload_thread.start()
-
-        thread = threading.Thread(target=worker_loop, daemon=True)
-        thread.start()
+        start_background_services()
 
     app.run(debug=debug)
