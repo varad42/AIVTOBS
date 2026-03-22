@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
-from modules.queue_worker import worker_loop
+from modules.queue_worker import worker_loop, preload_whisper_model, recover_interrupted_jobs
 import threading
 import os
 from flask import Flask, render_template, session, redirect
@@ -69,6 +69,11 @@ if __name__ == "__main__":
 
     # Prevent duplicate worker threads when Flask debug reloader is enabled.
     if (not debug) or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        recover_interrupted_jobs()
+
+        preload_thread = threading.Thread(target=preload_whisper_model, daemon=True)
+        preload_thread.start()
+
         thread = threading.Thread(target=worker_loop, daemon=True)
         thread.start()
 

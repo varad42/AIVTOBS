@@ -18,6 +18,12 @@ from modules.summarizer import summarize_text
 _whisper_model = None
 WHISPER_CHUNK_SECONDS = 420
 WHISPER_CHUNK_THRESHOLD_SECONDS = 1200
+RECOVERABLE_ACTIVE_STATUSES = [
+    "processing",
+    "downloading",
+    "extracting_audio",
+    "transcribing"
+]
 
 
 def parse_utc_datetime(value):
@@ -90,6 +96,17 @@ def get_whisper_model():
         )
 
     return _whisper_model
+
+
+def preload_whisper_model():
+
+    try:
+        print("Preloading faster-whisper model during app startup")
+        get_whisper_model()
+        print("faster-whisper model preloaded")
+    except Exception as error:
+        print(f"Failed to preload faster-whisper model: {error}")
+        print(traceback.format_exc())
 
 
 def get_wav_duration_seconds(audio_path):
@@ -194,8 +211,39 @@ def claim_next_job(worker_started_at):
                 "status": "processing"
             }
         },
+        sort=[("_id", -1)],
         return_document=ReturnDocument.AFTER
     )
+
+
+def recover_interrupted_jobs():
+
+    recovered_at = datetime.now(timezone.utc)
+    result = jobs_collection.update_many(
+        {
+            "status": {
+                "$in": RECOVERABLE_ACTIVE_STATUSES
+            }
+        },
+        {
+            "$set": {
+                "status": "uploaded",
+                "recovered_after_restart": True,
+                "recovery_note": (
+                    "Job was interrupted while the app was offline and was "
+                    "re-queued from the beginning."
+                ),
+                "recovered_at": recovered_at,
+                "queued_at": recovered_at
+            }
+        }
+    )
+
+    if result.modified_count:
+        print(
+            f"Recovered {result.modified_count} interrupted job(s) "
+            "back to uploaded status"
+        )
 
 
 def process_job(job):
@@ -460,12 +508,14 @@ def worker_loop():
 
         if not job:
             job = jobs_collection.find_one(
-                {"status": "summarize_requested"}
+                {"status": "summarize_requested"},
+                sort=[("_id", -1)]
             )
 
         if not job:
             job = jobs_collection.find_one(
-                {"status": "summary_ready"}
+                {"status": "summary_ready"},
+                sort=[("_id", -1)]
             )
 
         if job:

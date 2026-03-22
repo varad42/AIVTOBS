@@ -5,7 +5,7 @@ import os
 import re
 import requests
 
-from config import OLLAMA_SUMMARY_MODEL, OLLAMA_URL, LLAMA_CPP_MODEL, LLAMA_CPP_URL
+from config import LLAMA_CPP_MODEL, LLAMA_CPP_URL
 
 _PIPELINE_CACHE = {}
 FAST_STOPWORDS = {
@@ -18,13 +18,16 @@ FAST_STOPWORDS = {
     "which", "while", "with", "would", "your", "you", "about", "into",
     "video", "videos", "summary", "summaries"
 }
+TRANSCRIPT_FILLER_WORDS = {
+    "uh", "uhh", "um", "umm", "erm", "ah", "hmm"
+}
 
 
 def _resolve_model_id(model_name):
     if model_name == "hybrid":
         return None
 
-    if model_name in {"ollama", "llama_cpp", "mistral", "phi"}:
+    if model_name == "llama_cpp":
         return None
 
     if model_name == "t5":
@@ -35,9 +38,6 @@ def _resolve_model_id(model_name):
 
     if model_name == "long_t5":
         return "google/long-t5-tglobal-base"
-
-    if model_name == "led_base_16384":
-        return "allenai/led-base-16384"
 
     return "t5-small"
 
@@ -75,6 +75,44 @@ def _split_sentences(text):
         for sentence in re.split(r"(?<=[.!?])\s+", text.strip())
         if sentence.strip()
     ]
+
+
+def clean_transcript_text(text):
+
+    if not text:
+        return ""
+
+    cleaned_text = text.replace("\r", " ")
+
+    # Remove timestamp-like artifacts that can slip into transcripts.
+    cleaned_text = re.sub(r"\b\d{1,2}:\d{2}(?::\d{2})?\b", " ", cleaned_text)
+    cleaned_text = re.sub(r"\[(?:music|applause|laughter|noise)[^\]]*\]", " ", cleaned_text, flags=re.IGNORECASE)
+    cleaned_text = re.sub(r"\((?:music|applause|laughter|noise)[^)]*\)", " ", cleaned_text, flags=re.IGNORECASE)
+
+    # Collapse stretched punctuation and repeated word stutters.
+    cleaned_text = re.sub(r"([.,!?])\1+", r"\1", cleaned_text)
+    cleaned_text = re.sub(r"\b(\w+)(?:\s+\1\b){1,}", r"\1", cleaned_text, flags=re.IGNORECASE)
+
+    words = cleaned_text.split()
+    cleaned_words = []
+    previous_word = ""
+
+    for word in words:
+        stripped_word = re.sub(r"^[^\w]+|[^\w]+$", "", word).lower()
+
+        if stripped_word in TRANSCRIPT_FILLER_WORDS:
+            continue
+
+        if stripped_word and stripped_word == previous_word:
+            continue
+
+        cleaned_words.append(word)
+        previous_word = stripped_word
+
+    cleaned_text = " ".join(cleaned_words)
+    cleaned_text = re.sub(r"\s+", " ", cleaned_text).strip()
+
+    return cleaned_text or text.strip()
 
 
 def _normalize_words(text):
@@ -219,24 +257,88 @@ def split_text(text, chunk_size=1800, overlap_words=40):
     return chunks
 
 
-def summarize_with_pipeline(text, model_name):
+def _summarize_chunk_with_pipeline(pipe, chunk):
+
+    result = pipe(
+        chunk,
+        do_sample=False
+    )
+    return result[0]["summary_text"].strip()
+
+
+def hierarchical_summarize_with_pipeline(
+    text,
+    model_name,
+    chunk_size=1800,
+    overlap_words=40,
+    merge_group_size=4,
+    max_passes=3
+):
 
     pipe = get_pipeline(model_name)
-    chunks = split_text(text)
+    current_chunks = split_text(
+        text,
+        chunk_size=chunk_size,
+        overlap_words=overlap_words
+    )
 
-    if not chunks:
+    if not current_chunks:
         return ""
 
-    partial_summaries = []
+    pass_number = 0
 
-    for chunk in chunks:
-        result = pipe(
-            chunk,
-            do_sample=False
+    while len(current_chunks) > 1 and pass_number < max_passes:
+        summarized_chunks = []
+
+        for chunk in current_chunks:
+            summarized_chunk = _summarize_chunk_with_pipeline(
+                pipe,
+                chunk
+            )
+            if summarized_chunk:
+                summarized_chunks.append(summarized_chunk)
+
+        if not summarized_chunks:
+            return ""
+
+        if len(summarized_chunks) == 1:
+            return summarized_chunks[0]
+
+        merged_chunks = []
+
+        for start_index in range(0, len(summarized_chunks), merge_group_size):
+            merged_chunk = "\n\n".join(
+                summarized_chunks[start_index:start_index + merge_group_size]
+            ).strip()
+            if merged_chunk:
+                merged_chunks.append(merged_chunk)
+
+        if len(merged_chunks) >= len(current_chunks):
+            current_chunks = summarized_chunks
+            break
+
+        current_chunks = merged_chunks
+        pass_number += 1
+
+    final_input = "\n\n".join(current_chunks).strip()
+    if not final_input:
+        return ""
+
+    if len(current_chunks) == 1:
+        return _summarize_chunk_with_pipeline(
+            pipe,
+            final_input
         )
-        partial_summaries.append(result[0]["summary_text"])
 
-    return "\n\n".join(partial_summaries)
+    return final_input
+
+
+def summarize_with_pipeline(text, model_name):
+
+    return hierarchical_summarize_with_pipeline(
+        text,
+        model_name
+    )
 
 
 def build_summary_prompt(text):
@@ -246,18 +348,6 @@ def build_summary_prompt(text):
         "Focus on the main ideas, important details, and keep it readable.\n\n"
         f"Transcript:\n{text}"
     )
-
-
-def is_ollama_available(timeout=2):
-
-    try:
-        response = requests.get(
-            f"{OLLAMA_URL.rstrip('/')}/api/tags",
-            timeout=timeout
-        )
-        return response.ok
-    except requests.RequestException:
-        return False
 
 
 def is_llama_cpp_available(timeout=2):
@@ -270,102 +360,6 @@ def is_llama_cpp_available(timeout=2):
         return response.ok
     except requests.RequestException:
         return False
-
-
-def summarize_with_ollama(text, model_name=None):
-    selected_model = model_name or OLLAMA_SUMMARY_MODEL
-    base_url = OLLAMA_URL.rstrip("/")
-    prompt = build_summary_prompt(text)
-
-    if not is_ollama_available():
-        raise RuntimeError(
-            f"Ollama is not reachable at {base_url}. "
-            "Start the Ollama server and make sure the selected model is installed."
-        )
-
-    endpoint_attempts = [
-        (
-            f"{base_url}/api/generate",
-            {
-                "model": selected_model,
-                "prompt": prompt,
-                "stream": False
-            },
-            "generate"
-        ),
-        (
-            f"{base_url}/api/chat",
-            {
-                "model": selected_model,
-                "stream": False,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You write concise, high-quality transcript summaries."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
-            },
-            "chat"
-        ),
-        (
-            f"{base_url}/v1/chat/completions",
-            {
-                "model": selected_model,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You write concise, high-quality transcript summaries."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                "temperature": 0.2
-            },
-            "openai_chat"
-        )
-    ]
-
-    last_error = None
-
-    for url, payload, response_type in endpoint_attempts:
-        try:
-            response = requests.post(
-                url,
-                json=payload,
-                timeout=300
-            )
-
-            if response.status_code == 404:
-                last_error = RuntimeError(
-                    f"Endpoint not found at {url}"
-                )
-                continue
-
-            response.raise_for_status()
-            data = response.json()
-
-            if response_type == "generate":
-                return data.get("response", "").strip()
-
-            if response_type == "chat":
-                return data.get("message", {}).get("content", "").strip()
-
-            return data["choices"][0]["message"]["content"].strip()
-        except (requests.RequestException, KeyError, IndexError, TypeError, ValueError) as error:
-            last_error = error
-
-    raise RuntimeError(
-        "Could not reach a compatible Ollama endpoint. "
-        f"Checked {base_url}/api/generate, {base_url}/api/chat, and "
-        f"{base_url}/v1/chat/completions for model '{selected_model}'. "
-        "Make sure Ollama is running and that the model has been pulled locally."
-    ) from last_error
 
 
 def summarize_with_llama_cpp(text):
@@ -416,35 +410,47 @@ def hybrid_summary(text):
     else:
         selected_sentence_count = 10
 
-    condensed_text = fast_extractive_summary(
+    transcript_chunks = split_text(
         text,
-        max_sentences=selected_sentence_count,
-        chunk_sentence_limit=16
+        chunk_size=1400,
+        overlap_words=60
     )
+    condensed_parts = []
+
+    for chunk in transcript_chunks:
+        condensed_chunk = fast_extractive_summary(
+            chunk,
+            max_sentences=selected_sentence_count,
+            chunk_sentence_limit=16
+        )
+        if condensed_chunk:
+            condensed_parts.append(condensed_chunk)
+
+    condensed_text = " ".join(condensed_parts).strip()
 
     if not condensed_text.strip():
         return ""
 
     try:
-        return summarize_with_pipeline(condensed_text, "distilbart")
+        return hierarchical_summarize_with_pipeline(
+            condensed_text,
+            "distilbart",
+            chunk_size=1000,
+            overlap_words=30,
+            merge_group_size=3,
+            max_passes=3
+        )
     except Exception:
         return condensed_text
 
 
 def summarize_text(text, model_name):
+    cleaned_text = clean_transcript_text(text)
+
     if model_name == "hybrid":
-        return hybrid_summary(text)
-
-    if model_name == "ollama":
-        return summarize_with_ollama(text)
-
-    if model_name == "mistral":
-        return summarize_with_ollama(text, "mistral")
-
-    if model_name == "phi":
-        return summarize_with_ollama(text, "phi")
+        return hybrid_summary(cleaned_text)
 
     if model_name == "llama_cpp":
-        return summarize_with_llama_cpp(text)
+        return summarize_with_llama_cpp(cleaned_text)
 
-    return summarize_with_pipeline(text, model_name)
+    return summarize_with_pipeline(cleaned_text, model_name)
