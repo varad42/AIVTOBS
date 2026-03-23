@@ -13,7 +13,7 @@ from pymongo import ReturnDocument
 
 from database.mongo import jobs_collection
 from modules.blog_generator import generate_blog
-from modules.summarizer import summarize_text
+from modules.summarizer import clean_transcript_text, summarize_text
 
 _whisper_model = None
 WHISPER_CHUNK_SECONDS = 420
@@ -229,13 +229,21 @@ def process_job(job):
 
                 text = f.read()
 
+            cleaned_text = clean_transcript_text(text)
+            cleaned_text_path = f"jobs/{job_file_stem}_cleaned.txt"
+
+            print(f"Saving cleaned transcript for job {job_id} to {cleaned_text_path}")
+
+            with open(cleaned_text_path, "w", encoding="utf-8") as f:
+                f.write(cleaned_text)
+
             model = job.get(
                 "summary_model",
                 "t5"
             )
 
             summary = summarize_text(
-                text,
+                cleaned_text,
                 model
             )
 
@@ -260,6 +268,7 @@ def process_job(job):
                     "$set": {
                         "status": "summary_ready",
                         "model_used": model,
+                        "cleaned_transcript_file": cleaned_text_path,
                         "summary_file": out,
                         "summary_saved_at": summary_saved_at,
                         "summary_generation_seconds": summary_generation_seconds
