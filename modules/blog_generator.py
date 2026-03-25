@@ -1,26 +1,60 @@
 from google import genai
-import os
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+import re
+
+from config import GEMINI_API_KEY, GEMINI_MODEL
+
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+
+
+def _clean_blog_text(text):
+
+    if not text:
+        return ""
+
+    cleaned_text = text.replace("### ", "")
+    cleaned_text = cleaned_text.replace("## ", "")
+    cleaned_text = cleaned_text.replace("# ", "")
+    cleaned_text = cleaned_text.replace("**", "")
+    cleaned_text = cleaned_text.replace("* ", "- ")
+    cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text)
+
+    return cleaned_text.strip()
 
 
 def generate_blog(summary):
 
     prompt = f"""
-    Write a blog article from this summary.
+    Write a clean blog article from this summary.
 
     Include:
     Title
     Tags
     Blog Content
 
+    Formatting rules:
+    Do not use Markdown.
+    Do not use #, ##, ### headings.
+    Do not use ** bold markers.
+    Do not use bullet points with *.
+    Return plain readable text only.
+    Use this structure:
+    Title: ...
+    Tags: ...
+    Blog:
+    ...
+    Conclusion:
+    ...
+
     Summary:
     {summary}
     """
 
     try:
+        if client is None:
+            raise RuntimeError("GEMINI_API_KEY is not configured.")
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=GEMINI_MODEL,
             contents=prompt
         )
 
@@ -29,7 +63,7 @@ def generate_blog(summary):
         if not text:
             raise Exception("Empty response")
 
-        return text
+        return _clean_blog_text(text)
 
     except Exception as e:
 
@@ -47,4 +81,4 @@ Blog:
 
 Conclusion:
 This blog was generated using fallback mode because AI API failed.
-"""
+""".strip()

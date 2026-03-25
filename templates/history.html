@@ -28,7 +28,7 @@
             <tr>
                 <td>{{ job.file }}</td>
                 <td><span class="status-pill">{{ job.status }}</span></td>
-                <td>faster-whisper</td>
+                <td>{{ job.get("transcription_provider", "whisper") }}</td>
                 <td>{{ job.get("summary_model", "-") }}</td>
                 <td>
                     {% if job.get("summary_file") %}

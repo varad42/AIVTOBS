@@ -257,11 +257,36 @@ def split_text(text, chunk_size=1800, overlap_words=40):
     return chunks
 
 
-def _summarize_chunk_with_pipeline(pipe, chunk):
+def _estimate_summary_lengths(chunk):
+
+    word_count = len(chunk.split())
+
+    if word_count <= 120:
+        return 10, 20
+
+    if word_count <= 220:
+        return 18, 40
+
+    if word_count <= 400:
+        return 28, 50
+
+    return 40, 60
+
+
+def _summarize_chunk_with_pipeline(pipe, chunk, min_length=None, max_length=None):
+
+    if min_length is None or max_length is None:
+        estimated_min_length, estimated_max_length = _estimate_summary_lengths(chunk)
+        if min_length is None:
+            min_length = estimated_min_length
+        if max_length is None:
+            max_length = estimated_max_length
 
     result = pipe(
         chunk,
-        do_sample=False
+        do_sample=False,
+        min_length=min_length,
+        max_length=max_length
     )
     return result[0]["summary_text"].strip()
 
@@ -339,6 +364,69 @@ def summarize_with_pipeline(text, model_name):
         text,
         model_name
     )
+
+
+def summarize_section_text(text, model_name):
+
+    cleaned_text = clean_transcript_text(text)
+
+    if not cleaned_text:
+        return ""
+
+    if model_name == "hybrid":
+        return fast_extractive_summary(cleaned_text, max_sentences=8, chunk_sentence_limit=14)
+
+    if model_name == "llama_cpp":
+        return summarize_with_llama_cpp(cleaned_text)
+
+    pipe = get_pipeline(model_name)
+    chunks = split_text(cleaned_text, chunk_size=1400, overlap_words=50)
+    section_summaries = []
+
+    for chunk in chunks:
+        summarized_chunk = _summarize_chunk_with_pipeline(pipe, chunk)
+        if summarized_chunk:
+            section_summaries.append(summarized_chunk)
+
+    return "\n\n".join(section_summaries).strip()
+
+
+def detailed_summarize_with_pipeline(text, model_name):
+
+    cleaned_text = clean_transcript_text(text)
+
+    if not cleaned_text:
+        return ""
+
+    if model_name == "hybrid":
+        return hybrid_summary(cleaned_text)
+
+    if model_name == "llama_cpp":
+        return summarize_with_llama_cpp(cleaned_text)
+
+    pipe = get_pipeline(model_name)
+    chunk_size = 2200 if model_name == "long_t5" else 1600
+    overlap_words = 80 if model_name == "long_t5" else 60
+    chunks = split_text(
+        cleaned_text,
+        chunk_size=chunk_size,
+        overlap_words=overlap_words
+    )
+
+    if not chunks:
+        return ""
+
+    section_summaries = []
+
+    for index, chunk in enumerate(chunks, start=1):
+        summarized_chunk = _summarize_chunk_with_pipeline(pipe, chunk)
+        if summarized_chunk:
+            if len(chunks) == 1:
+                section_summaries.append(summarized_chunk)
+            else:
+                section_summaries.append(f"Part {index}\n{summarized_chunk}")
+
+    return "\n\n".join(section_summaries).strip()
 
 
 def build_summary_prompt(text):
@@ -453,4 +541,4 @@ def summarize_text(text, model_name):
     if model_name == "llama_cpp":
         return summarize_with_llama_cpp(cleaned_text)
 
-    return summarize_with_pipeline(cleaned_text, model_name)
+    return detailed_summarize_with_pipeline(cleaned_text, model_name)

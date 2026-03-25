@@ -18,6 +18,18 @@
 
     <div class="text-content" style="margin-top: 22px;">{{ summary }}</div>
 
+    {% if timestamp_summary %}
+    <div style="margin-top: 28px;">
+        <div class="section-header" style="margin-bottom: 12px;">
+            <div>
+                <p class="auth-eyebrow">Timeline</p>
+                <h2 class="card-title">Timestamp Summary</h2>
+            </div>
+        </div>
+        <div class="text-content">{{ timestamp_summary }}</div>
+    </div>
+    {% endif %}
+
     <div class="action-row" style="margin-top: 28px;">
         <a class="btn-primary" href="/download_summary/{{ job_id }}">Download Summary</a>
         <a class="btn-secondary" href="/processing/{{ job_id }}">Processing</a>

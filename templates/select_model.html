@@ -10,6 +10,24 @@
         <p class="section-subtitle">Pick the model you want for job <strong>{{ job.job_id }}</strong>. Once selected, summary generation starts immediately.</p>
 
         <form method="POST" class="surface-form">
+            <div>
+                <h2 class="card-title">Transcript Source</h2>
+                <div class="choice-grid" style="margin-top: 12px;">
+                    {% for option in transcript_source_options %}
+                    <label class="choice-card {% if not option.enabled %}choice-card-disabled{% endif %}">
+                        <input type="radio" name="transcript_source" value="{{ option.value }}" {% if option.checked %}checked{% endif %} {% if not option.enabled %}disabled{% endif %}>
+                        <span>
+                            <strong>{{ option.label }}</strong>
+                            <span class="card-copy">{{ option.description }}</span>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <h2 class="card-title">Summary Model</h2>
+            </div>
             <div class="choice-grid">
                 {% for option in summary_model_options %}
                 <label class="choice-card {% if not option.enabled %}choice-card-disabled{% endif %}">

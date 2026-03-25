@@ -84,7 +84,6 @@ def upload():
 
         video = request.files.get("video")
         youtube_url = request.form.get("youtube")
-
         job_id = str(uuid.uuid4())
         job_slug = build_job_slug(
             video.filename if video else "",

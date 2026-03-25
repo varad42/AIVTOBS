@@ -50,6 +50,7 @@ def view_summary(job_id):
         return error
 
     summary_text = _read_text_file(job.get("summary_file"))
+    timestamp_summary_text = _read_text_file(job.get("timestamp_summary_file"))
 
     if summary_text is None:
         return "Summary not ready"
@@ -57,6 +58,7 @@ def view_summary(job_id):
     return render_template(
         "summary.html",
         summary=summary_text,
+        timestamp_summary=timestamp_summary_text,
         job_id=job_id,
         model_name=job.get("summary_model", "t5")
     )

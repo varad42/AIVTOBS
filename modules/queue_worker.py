@@ -6,18 +6,30 @@ import json
 import requests
 import tempfile
 import wave
+from urllib.parse import parse_qs, urlparse
 
 from datetime import datetime, timezone
 from faster_whisper import WhisperModel
 from pymongo import ReturnDocument
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import (
+    CouldNotRetrieveTranscript,
+    IpBlocked,
+    NoTranscriptFound,
+    RequestBlocked,
+    TranscriptsDisabled,
+    VideoUnavailable,
+)
 
+from config import YTDLP_COOKIES_FILE, YTDLP_COOKIES_FROM_BROWSER
 from database.mongo import jobs_collection
 from modules.blog_generator import generate_blog
-from modules.summarizer import clean_transcript_text, summarize_text
+from modules.summarizer import clean_transcript_text, summarize_section_text, summarize_text
 
-_whisper_model = None
+_whisper_model_cache = {}
 WHISPER_CHUNK_SECONDS = 420
-WHISPER_CHUNK_THRESHOLD_SECONDS = 1200
+TIMESTAMP_SUMMARY_SECTION_SECONDS = 300
+TIMESTAMP_SUMMARY_MAX_CHARS = 2200
 
 
 def parse_utc_datetime(value):
@@ -44,6 +56,67 @@ def get_job_file_stem(job):
     return job.get("job_slug") or job["job_id"]
 
 
+def extract_youtube_video_id(url):
+
+    parsed_url = urlparse(url)
+    hostname = parsed_url.netloc.lower()
+
+    if "youtu.be" in hostname:
+        return parsed_url.path.lstrip("/").split("/")[0]
+
+    if "youtube.com" in hostname:
+        query_video_id = parse_qs(parsed_url.query).get("v", [])
+        if query_video_id:
+            return query_video_id[0]
+
+        path_parts = [part for part in parsed_url.path.split("/") if part]
+        if len(path_parts) >= 2 and path_parts[0] in {"embed", "shorts", "live"}:
+            return path_parts[1]
+
+    return None
+
+
+def fetch_youtube_transcript(video_url):
+
+    video_id = extract_youtube_video_id(video_url)
+
+    if not video_id:
+        raise RuntimeError("Could not determine the YouTube video id from the URL.")
+
+    transcript_segments = YouTubeTranscriptApi().fetch(video_id, languages=["en"])
+
+    if not transcript_segments:
+        raise RuntimeError("YouTube transcript response was empty.")
+
+    normalized_segments = []
+    transcript_parts = []
+
+    for segment in transcript_segments:
+        segment_text = " ".join(getattr(segment, "text", "").split()).strip()
+        if not segment_text:
+            continue
+
+        start_time = float(getattr(segment, "start", 0.0))
+        duration = float(getattr(segment, "duration", 0.0))
+        end_time = start_time + max(duration, 0.0)
+
+        normalized_segments.append(
+            {
+                "start": start_time,
+                "end": end_time,
+                "text": segment_text
+            }
+        )
+        transcript_parts.append(segment_text)
+
+    transcript_text = " ".join(transcript_parts).strip()
+
+    if not transcript_text:
+        raise RuntimeError("YouTube transcript text was empty after normalization.")
+
+    return transcript_text, normalized_segments
+
+
 def download_youtube(url, output):
 
     print(f"Downloading YouTube video from {url}")
@@ -52,8 +125,22 @@ def download_youtube(url, output):
         "yt-dlp",
         "-o",
         output + ".%(ext)s",
-        url
     ]
+
+    if YTDLP_COOKIES_FROM_BROWSER:
+        print(f"Using yt-dlp cookies from browser: {YTDLP_COOKIES_FROM_BROWSER}")
+        cmd.extend([
+            "--cookies-from-browser",
+            YTDLP_COOKIES_FROM_BROWSER
+        ])
+    elif YTDLP_COOKIES_FILE:
+        print(f"Using yt-dlp cookies file: {YTDLP_COOKIES_FILE}")
+        cmd.extend([
+            "--cookies",
+            YTDLP_COOKIES_FILE
+        ])
+
+    cmd.append(url)
 
     subprocess.run(cmd, check=True)
 
@@ -77,19 +164,17 @@ def extract_audio(video, audio):
     subprocess.run(cmd, check=True)
 
 
-def get_whisper_model():
+def get_whisper_model(model_name="base"):
 
-    global _whisper_model
-
-    if _whisper_model is None:
-        print("Loading faster-whisper model into memory")
-        _whisper_model = WhisperModel(
-            "base",
+    if model_name not in _whisper_model_cache:
+        print(f"Loading faster-whisper model into memory: {model_name}")
+        _whisper_model_cache[model_name] = WhisperModel(
+            model_name,
             device="cpu",
             compute_type="int8"
         )
 
-    return _whisper_model
+    return _whisper_model_cache[model_name]
 
 
 def preload_whisper_model():
@@ -143,54 +228,178 @@ def split_wav_into_chunks(audio_path, chunk_seconds=WHISPER_CHUNK_SECONDS):
     return temp_dir, chunk_paths
 
 
-def transcribe_with_whisper(audio_path):
+def transcribe_with_whisper(audio_path, language=None, task="transcribe", whisper_model_name="base", beam_size=1):
 
     print(f"Preparing faster-whisper transcription for audio: {audio_path}")
-    model = get_whisper_model()
+    model = get_whisper_model(whisper_model_name)
     audio_duration_seconds = get_wav_duration_seconds(audio_path)
+    transcribe_kwargs = {
+        "beam_size": beam_size,
+        "task": task
+    }
 
-    if audio_duration_seconds <= WHISPER_CHUNK_THRESHOLD_SECONDS:
-        print("faster-whisper transcription started")
-        segments, info = model.transcribe(
-            audio_path,
-            beam_size=1
-        )
-
-        return " ".join(segment.text.strip() for segment in segments).strip()
+    if language:
+        transcribe_kwargs["language"] = language
 
     print(
-        f"Long audio detected ({audio_duration_seconds:.2f} seconds). "
+        f"Audio length is {audio_duration_seconds:.2f} seconds. "
         f"Transcribing in {WHISPER_CHUNK_SECONDS}-second chunks."
     )
     chunk_dir, chunk_paths = split_wav_into_chunks(audio_path)
 
     try:
         transcript_parts = []
+        detected_info = None
+        collected_segments = []
 
         for index, chunk_path in enumerate(chunk_paths, start=1):
             print(f"faster-whisper transcription started for chunk {index}/{len(chunk_paths)}")
             segments, info = model.transcribe(
                 chunk_path,
-                beam_size=1
+                **transcribe_kwargs
             )
+            if detected_info is None:
+                detected_info = info
 
-            chunk_text = " ".join(segment.text.strip() for segment in segments).strip()
+            chunk_offset_seconds = (index - 1) * WHISPER_CHUNK_SECONDS
+
+            chunk_text_parts = []
+
+            for segment in segments:
+                segment_text = segment.text.strip()
+                if not segment_text:
+                    continue
+                chunk_text_parts.append(segment_text)
+                collected_segments.append(
+                    {
+                        "start": float(segment.start) + chunk_offset_seconds,
+                        "end": float(segment.end) + chunk_offset_seconds,
+                        "text": segment_text
+                    }
+                )
+
+            chunk_text = " ".join(chunk_text_parts).strip()
             if chunk_text:
                 transcript_parts.append(chunk_text)
 
-        return " ".join(transcript_parts).strip()
+        return " ".join(transcript_parts).strip(), detected_info, collected_segments
     finally:
         chunk_dir.cleanup()
 
 
-def transcribe_audio(audio_path, txt_path):
+def transcribe_audio(audio_path, txt_path, language=None, task="transcribe", whisper_model_name="base", beam_size=1):
 
-    text = transcribe_with_whisper(audio_path)
+    text, info, segments = transcribe_with_whisper(
+        audio_path,
+        language=language,
+        task=task,
+        whisper_model_name=whisper_model_name,
+        beam_size=beam_size
+    )
 
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write(text)
 
     print(f"Transcript saved to {txt_path}")
+    return info, segments
+
+
+def save_text_file(path, text):
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def read_text_file(path):
+
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def format_timestamp(seconds):
+
+    total_seconds = max(0, int(seconds))
+    minutes, remaining_seconds = divmod(total_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    if hours:
+        return f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}"
+
+    return f"{minutes:02d}:{remaining_seconds:02d}"
+
+
+def build_timed_summary_sections(segments):
+
+    if not segments:
+        return []
+
+    sections = []
+    current_section = None
+
+    for segment in segments:
+        segment_text = segment.get("text", "").strip()
+        if not segment_text:
+            continue
+
+        segment_start = float(segment.get("start", 0.0))
+        segment_end = float(segment.get("end", segment_start))
+
+        should_start_new_section = False
+
+        if current_section is None:
+            should_start_new_section = True
+        else:
+            section_duration = segment_end - current_section["start"]
+            projected_length = len(current_section["text"]) + 1 + len(segment_text)
+            if (
+                section_duration >= TIMESTAMP_SUMMARY_SECTION_SECONDS
+                and projected_length >= 600
+            ) or projected_length > TIMESTAMP_SUMMARY_MAX_CHARS:
+                should_start_new_section = True
+
+        if should_start_new_section:
+            current_section = {
+                "start": segment_start,
+                "end": segment_end,
+                "parts": [segment_text],
+                "text": segment_text
+            }
+            sections.append(current_section)
+            continue
+
+        current_section["end"] = segment_end
+        current_section["parts"].append(segment_text)
+        current_section["text"] = " ".join(current_section["parts"])
+
+    return sections
+
+
+def build_timestamp_summary_text(sections, model_name):
+
+    output_lines = []
+
+    for section in sections:
+        section_text = section["text"].strip()
+        if not section_text:
+            continue
+
+        summary_input = section_text
+
+        try:
+            section_summary = summarize_section_text(summary_input, model_name)
+        except Exception as error:
+            print(f"Timestamp summary failed for section at {section['start']:.2f}s: {error}")
+            section_summary = clean_transcript_text(summary_input)
+
+        section_summary = " ".join(section_summary.split())
+        if not section_summary:
+            continue
+
+        output_lines.append(
+            f"{format_timestamp(section['start'])} - {section_summary}"
+        )
+
+    return "\n".join(output_lines).strip()
 
 
 def claim_next_job(worker_started_at):
@@ -242,16 +451,35 @@ def process_job(job):
                 "t5"
             )
 
-            summary = summarize_text(
-                cleaned_text,
-                model
-            )
+            summary = ""
+            segments_path = job.get("transcript_segments_file")
+
+            if segments_path and os.path.exists(segments_path):
+                try:
+                    with open(segments_path, "r", encoding="utf-8") as f:
+                        transcript_segments = json.load(f)
+
+                    timestamp_sections = build_timed_summary_sections(transcript_segments)
+                    timestamp_summary_text = build_timestamp_summary_text(
+                        timestamp_sections,
+                        model
+                    )
+
+                    if timestamp_summary_text:
+                        summary = timestamp_summary_text
+                except Exception as error:
+                    print(f"Timestamp summary generation failed for job {job_id}: {error}")
+                    print(traceback.format_exc())
+
+            if not summary:
+                summary = summarize_text(
+                    cleaned_text,
+                    model
+                )
 
             out = f"jobs/{job_file_stem}_summary_{model}.txt"
             print(f"Saving summary for job {job_id} using model {model} to {out}")
-
-            with open(out, "w", encoding="utf-8") as f:
-                f.write(summary)
+            save_text_file(out, summary)
 
             summary_saved_at = datetime.now(timezone.utc)
             model_selected_at = parse_utc_datetime(job.get("model_selected_at"))
@@ -270,6 +498,7 @@ def process_job(job):
                         "model_used": model,
                         "cleaned_transcript_file": cleaned_text_path,
                         "summary_file": out,
+                        "timestamp_summary_file": None,
                         "summary_saved_at": summary_saved_at,
                         "summary_generation_seconds": summary_generation_seconds
                     }
@@ -324,6 +553,7 @@ def process_job(job):
         video_path = f"jobs/{job_file_stem}"
         audio_path = f"jobs/{job_file_stem}.wav"
         txt_path = f"jobs/{job_file_stem}.txt"
+        segments_path = f"jobs/{job_file_stem}_segments.json"
         download_seconds = None
         audio_extraction_seconds = None
         transcription_seconds = None
@@ -336,11 +566,86 @@ def process_job(job):
                 {"$set": {"status": "downloading"}}
             )
 
+            transcript_started_at = time.perf_counter()
+
+            try:
+                print(f"Trying YouTube transcript fetch first for job {job_id}")
+                transcript_text, transcript_segments = fetch_youtube_transcript(file_path)
+                save_text_file(txt_path, transcript_text)
+                save_text_file(
+                    segments_path,
+                    json.dumps(transcript_segments, ensure_ascii=False, indent=2)
+                )
+                transcription_seconds = time.perf_counter() - transcript_started_at
+
+                jobs_collection.update_one(
+                    {"job_id": job_id},
+                    {
+                        "$set": {
+                            "transcription_seconds": transcription_seconds
+                        }
+                    }
+                )
+
+                transcript_saved_at = datetime.now(timezone.utc)
+                uploaded_at = parse_utc_datetime(job.get("uploaded_at"))
+                upload_to_transcript_seconds = None
+
+                if uploaded_at:
+                    upload_to_transcript_seconds = (
+                        transcript_saved_at - uploaded_at
+                    ).total_seconds()
+
+                jobs_collection.update_one(
+                    {"job_id": job_id},
+                    {
+                        "$set": {
+                            "status": "waiting_for_model",
+                            "transcript_file": txt_path,
+                            "original_transcript_file": txt_path,
+                            "transcript_segments_file": segments_path,
+                            "transcript_saved_at": transcript_saved_at,
+                            "download_seconds": download_seconds,
+                            "audio_extraction_seconds": None,
+                            "transcription_seconds": transcription_seconds,
+                            "upload_to_transcript_seconds": upload_to_transcript_seconds,
+                            "transcription_provider": "youtube_transcript_api"
+                        }
+                    }
+                )
+
+                print(f"YouTube transcript ready for job {job_id}")
+                print(f"YouTube caption transcript time: {transcription_seconds:.2f} seconds")
+                if upload_to_transcript_seconds is not None:
+                    print(
+                        f"Time from upload/YouTube URL to transcript saved: "
+                        f"{upload_to_transcript_seconds:.2f} seconds"
+                    )
+                return
+            except (
+                CouldNotRetrieveTranscript,
+                IpBlocked,
+                NoTranscriptFound,
+                RequestBlocked,
+                TranscriptsDisabled,
+                VideoUnavailable,
+                RuntimeError,
+            ) as error:
+                print(f"YouTube transcript unavailable for job {job_id}, falling back to Whisper: {error}")
+
             download_started_at = time.perf_counter()
-            download_youtube(
-                file_path,
-                video_path
-            )
+            try:
+                download_youtube(
+                    file_path,
+                    video_path
+                )
+            except subprocess.CalledProcessError as error:
+                raise RuntimeError(
+                    "YouTube transcript was unavailable, and the fallback video download was blocked by YouTube. "
+                    "This usually happens because of rate limiting or bot verification. "
+                    "Try again later, use another video, or provide the video file directly."
+                ) from error
+
             download_seconds = time.perf_counter() - download_started_at
             jobs_collection.update_one(
                 {"job_id": job_id},
@@ -398,9 +703,17 @@ def process_job(job):
         )
 
         transcription_started_at = time.perf_counter()
-        transcribe_audio(
+        transcription_info, transcript_segments = transcribe_audio(
             audio_path,
-            txt_path
+            txt_path,
+            language="en",
+            task="transcribe",
+            whisper_model_name="base",
+            beam_size=1
+        )
+        save_text_file(
+            segments_path,
+            json.dumps(transcript_segments, ensure_ascii=False, indent=2)
         )
         transcription_seconds = time.perf_counter() - transcription_started_at
         jobs_collection.update_one(
@@ -421,18 +734,26 @@ def process_job(job):
                 transcript_saved_at - uploaded_at
             ).total_seconds()
 
+        transcript_file_for_summary = txt_path
+        original_transcript_file = txt_path
+
         jobs_collection.update_one(
             {"job_id": job_id},
             {
                 "$set": {
                     "status": "waiting_for_model",
-                    "transcript_file": txt_path,
+                    "transcript_file": transcript_file_for_summary,
+                    "original_transcript_file": original_transcript_file,
+                    "transcript_segments_file": segments_path,
                     "transcript_saved_at": transcript_saved_at,
                     "download_seconds": download_seconds,
                     "audio_extraction_seconds": audio_extraction_seconds,
                     "transcription_seconds": transcription_seconds,
                     "upload_to_transcript_seconds": upload_to_transcript_seconds,
-                    "transcription_provider": "whisper"
+                    "transcription_provider": "whisper",
+                    "whisper_model_used": "base",
+                    "whisper_beam_size": 1,
+                    "detected_language": getattr(transcription_info, "language", None)
                 }
             }
         )
