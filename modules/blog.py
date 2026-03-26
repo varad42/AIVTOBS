@@ -1,9 +1,11 @@
 import os
+import json
 
 from flask import Blueprint, render_template, send_file
 
 from database.mongo import jobs_collection
 from modules.pdf_generator import create_pdf
+from modules.summarizer import build_timestamped_summary
 
 blog_bp = Blueprint("blog", __name__)
 
@@ -41,6 +43,49 @@ def _build_pdf_from_text(source_path, text):
     return pdf_path
 
 
+def _read_segments_file(path):
+
+    if not path or not os.path.exists(path):
+        return None
+
+    with open(path, "r", encoding="utf-8") as file_handle:
+        return json.load(file_handle)
+
+
+def _infer_segments_path(job):
+
+    direct_path = job.get("segments_file")
+    if direct_path:
+        return direct_path
+
+    job_slug = job.get("job_slug") or job.get("job_id")
+    if not job_slug:
+        return None
+
+    return os.path.join("jobs", f"{job_slug}_segments.json")
+
+
+def _get_timestamped_summary(job, plain_summary_text):
+
+    timestamped_path = job.get("summary_with_timestamps_file")
+    timestamped_text = _read_text_file(timestamped_path)
+
+    if timestamped_text:
+        return timestamped_text, timestamped_path
+
+    segments = _read_segments_file(_infer_segments_path(job))
+    if not segments:
+        return plain_summary_text, job.get("summary_file")
+
+    timestamped_text = build_timestamped_summary(plain_summary_text, segments)
+
+    if timestamped_path:
+        with open(timestamped_path, "w", encoding="utf-8") as file_handle:
+            file_handle.write(timestamped_text)
+
+    return timestamped_text, timestamped_path or job.get("summary_file")
+
+
 @blog_bp.route("/summary/<job_id>")
 def view_summary(job_id):
 
@@ -53,6 +98,8 @@ def view_summary(job_id):
 
     if summary_text is None:
         return "Summary not ready"
+
+    summary_text, _ = _get_timestamped_summary(job, summary_text)
 
     return render_template(
         "summary.html",
@@ -70,14 +117,14 @@ def download_summary(job_id):
     if error:
         return error
 
-    path = job.get("summary_file")
-
-    if not path or not os.path.exists(path):
-        return "Summary not ready"
-
-    summary_text = _read_text_file(path)
+    summary_text = _read_text_file(job.get("summary_file"))
 
     if summary_text is None:
+        return "Summary not ready"
+
+    summary_text, path = _get_timestamped_summary(job, summary_text)
+
+    if not path or not os.path.exists(path):
         return "Summary not ready"
 
     pdf_path = _build_pdf_from_text(path, summary_text)

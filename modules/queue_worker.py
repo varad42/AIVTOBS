@@ -13,7 +13,7 @@ from pymongo import ReturnDocument
 
 from database.mongo import jobs_collection
 from modules.blog_generator import generate_blog
-from modules.summarizer import summarize_text
+from modules.summarizer import summarize_text, build_timestamped_summary
 
 _whisper_model = None
 WHISPER_CHUNK_SECONDS = 420
@@ -155,8 +155,23 @@ def transcribe_with_whisper(audio_path):
             audio_path,
             beam_size=1
         )
+        segment_list = []
 
-        return " ".join(segment.text.strip() for segment in segments).strip()
+        for segment in segments:
+            text = segment.text.strip()
+            if not text:
+                continue
+
+            segment_list.append(
+                {
+                    "start": float(segment.start),
+                    "end": float(segment.end),
+                    "text": text
+                }
+            )
+
+        transcript_text = " ".join(segment["text"] for segment in segment_list).strip()
+        return transcript_text, segment_list
 
     print(
         f"Long audio detected ({audio_duration_seconds:.2f} seconds). "
@@ -166,6 +181,7 @@ def transcribe_with_whisper(audio_path):
 
     try:
         transcript_parts = []
+        segment_list = []
 
         for index, chunk_path in enumerate(chunk_paths, start=1):
             print(f"faster-whisper transcription started for chunk {index}/{len(chunk_paths)}")
@@ -174,23 +190,59 @@ def transcribe_with_whisper(audio_path):
                 beam_size=1
             )
 
-            chunk_text = " ".join(segment.text.strip() for segment in segments).strip()
+            chunk_offset = (index - 1) * WHISPER_CHUNK_SECONDS
+            chunk_text_parts = []
+
+            for segment in segments:
+                text = segment.text.strip()
+                if not text:
+                    continue
+
+                chunk_text_parts.append(text)
+                segment_list.append(
+                    {
+                        "start": float(segment.start) + chunk_offset,
+                        "end": float(segment.end) + chunk_offset,
+                        "text": text
+                    }
+                )
+
+            chunk_text = " ".join(chunk_text_parts).strip()
             if chunk_text:
                 transcript_parts.append(chunk_text)
 
-        return " ".join(transcript_parts).strip()
+        return " ".join(transcript_parts).strip(), segment_list
     finally:
         chunk_dir.cleanup()
 
 
-def transcribe_audio(audio_path, txt_path):
+def transcribe_audio(audio_path, txt_path, segments_path=None):
 
-    text = transcribe_with_whisper(audio_path)
+    text, segments = transcribe_with_whisper(audio_path)
 
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write(text)
 
     print(f"Transcript saved to {txt_path}")
+    saved_segments_path = None
+
+    if segments_path:
+        with open(segments_path, "w", encoding="utf-8") as file_handle:
+            json.dump(segments, file_handle, ensure_ascii=True, indent=2)
+
+        saved_segments_path = segments_path
+        print(f"Transcript segments saved to {segments_path}")
+
+    return text, saved_segments_path
+
+
+def load_segments_file(path):
+
+    if not path or not os.path.exists(path):
+        return None
+
+    with open(path, "r", encoding="utf-8") as file_handle:
+        return json.load(file_handle)
 
 
 def claim_next_job(worker_started_at):
@@ -240,10 +292,21 @@ def process_job(job):
             )
 
             out = f"jobs/{job_file_stem}_summary_{model}.txt"
+            timestamped_out = f"jobs/{job_file_stem}_summary_{model}_timestamped.txt"
             print(f"Saving summary for job {job_id} using model {model} to {out}")
 
             with open(out, "w", encoding="utf-8") as f:
                 f.write(summary)
+
+            segments_path = (
+                job.get("segments_file")
+                or f"jobs/{job_file_stem}_segments.json"
+            )
+            segments = load_segments_file(segments_path)
+            timestamped_summary = build_timestamped_summary(summary, segments)
+
+            with open(timestamped_out, "w", encoding="utf-8") as file_handle:
+                file_handle.write(timestamped_summary)
 
             summary_saved_at = datetime.now(timezone.utc)
             model_selected_at = parse_utc_datetime(job.get("model_selected_at"))
@@ -261,6 +324,7 @@ def process_job(job):
                         "status": "summary_ready",
                         "model_used": model,
                         "summary_file": out,
+                        "summary_with_timestamps_file": timestamped_out,
                         "summary_saved_at": summary_saved_at,
                         "summary_generation_seconds": summary_generation_seconds
                     }
@@ -315,6 +379,7 @@ def process_job(job):
         video_path = f"jobs/{job_file_stem}"
         audio_path = f"jobs/{job_file_stem}.wav"
         txt_path = f"jobs/{job_file_stem}.txt"
+        segments_path = f"jobs/{job_file_stem}_segments.json"
         download_seconds = None
         audio_extraction_seconds = None
         transcription_seconds = None
@@ -389,9 +454,10 @@ def process_job(job):
         )
 
         transcription_started_at = time.perf_counter()
-        transcribe_audio(
+        _, saved_segments_path = transcribe_audio(
             audio_path,
-            txt_path
+            txt_path,
+            segments_path
         )
         transcription_seconds = time.perf_counter() - transcription_started_at
         jobs_collection.update_one(
@@ -418,6 +484,7 @@ def process_job(job):
                 "$set": {
                     "status": "waiting_for_model",
                     "transcript_file": txt_path,
+                    "segments_file": saved_segments_path,
                     "transcript_saved_at": transcript_saved_at,
                     "download_seconds": download_seconds,
                     "audio_extraction_seconds": audio_extraction_seconds,

@@ -4,6 +4,7 @@ import gc
 import os
 import re
 import requests
+import math
 
 from config import LLAMA_CPP_MODEL, LLAMA_CPP_URL
 
@@ -121,6 +122,78 @@ def _normalize_words(text):
         word for word in re.findall(r"\b[a-zA-Z]{3,}\b", text.lower())
         if word not in FAST_STOPWORDS
     ]
+
+
+def format_seconds_as_timestamp(total_seconds):
+
+    safe_seconds = max(0, int(total_seconds or 0))
+    hours, remainder = divmod(safe_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    if hours:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def build_timestamped_summary(summary_text, segments):
+
+    if not summary_text:
+        return ""
+
+    if not segments:
+        return summary_text.strip()
+
+    summary_sentences = _split_sentences(summary_text)
+    if not summary_sentences:
+        return summary_text.strip()
+
+    usable_segments = []
+
+    for segment in segments:
+        text = str(segment.get("text", "")).strip()
+        if not text:
+            continue
+
+        usable_segments.append(
+            {
+                "start": float(segment.get("start", 0.0) or 0.0),
+                "text": text,
+                "words": set(_normalize_words(text))
+            }
+        )
+
+    if not usable_segments:
+        return summary_text.strip()
+
+    timestamped_lines = []
+    segment_cursor = 0
+
+    for sentence in summary_sentences:
+        sentence_words = set(_normalize_words(sentence))
+        best_index = segment_cursor
+        best_score = -math.inf
+
+        for index in range(segment_cursor, len(usable_segments)):
+            segment = usable_segments[index]
+            overlap = len(sentence_words & segment["words"])
+            coverage = overlap / max(len(sentence_words), 1)
+            distance_penalty = (index - segment_cursor) * 0.003
+            score = coverage - distance_penalty
+
+            if overlap == 0:
+                score -= 0.05
+
+            if score > best_score:
+                best_score = score
+                best_index = index
+
+        matched_segment = usable_segments[best_index]
+        timestamp = format_seconds_as_timestamp(matched_segment["start"])
+        timestamped_lines.append(f"[{timestamp}] {sentence}")
+        segment_cursor = min(best_index, len(usable_segments) - 1)
+
+    return "\n".join(timestamped_lines)
 
 
 def _sentence_similarity(sentence_a, sentence_b):
