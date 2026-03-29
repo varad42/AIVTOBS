@@ -3,6 +3,7 @@ import json
 
 from flask import Blueprint, render_template, send_file, redirect
 
+from config import JOBS_FOLDER
 from database.mongo import jobs_collection
 from modules.pdf_generator import create_pdf
 from modules.summarizer import build_timestamped_summary
@@ -79,7 +80,7 @@ def _infer_segments_path(job):
     if not job_slug:
         return None
 
-    return os.path.join("jobs", f"{job_slug}_segments.json")
+    return os.path.join(JOBS_FOLDER, f"{job_slug}_segments.json")
 
 
 def _get_timestamped_summary(job, plain_summary_text):

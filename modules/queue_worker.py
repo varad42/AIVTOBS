@@ -23,7 +23,7 @@ TranscriptsDisabled = getattr(yta_errors, "TranscriptsDisabled", CouldNotRetriev
 VideoUnavailable = getattr(yta_errors, "VideoUnavailable", CouldNotRetrieveTranscript)
 IpBlocked = getattr(yta_errors, "IpBlocked", RequestBlocked)
 
-from config import YTDLP_COOKIES_FILE, YTDLP_COOKIES_FROM_BROWSER
+from config import JOBS_FOLDER, YTDLP_COOKIES_FILE, YTDLP_COOKIES_FROM_BROWSER
 from database.mongo import jobs_collection
 from modules.blog_generator import generate_blog
 from modules.summarizer import clean_transcript_text, summarize_section_text, summarize_text
@@ -488,7 +488,7 @@ def process_job(job):
                 text = f.read()
 
             cleaned_text = clean_transcript_text(text)
-            cleaned_text_path = f"jobs/{job_file_stem}_cleaned.txt"
+            cleaned_text_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}_cleaned.txt")
 
             print(f"Saving cleaned transcript for job {job_id} to {cleaned_text_path}")
 
@@ -526,7 +526,7 @@ def process_job(job):
                     model
                 )
 
-            out = f"jobs/{job_file_stem}_summary_{model}.txt"
+            out = os.path.join(JOBS_FOLDER, f"{job_file_stem}_summary_{model}.txt")
             print(f"Saving summary for job {job_id} using model {model} to {out}")
             save_text_file(out, summary)
 
@@ -575,7 +575,7 @@ def process_job(job):
 
             blog = generate_blog(summary)
             model = job.get("summary_model", "t5")
-            blog_path = f"jobs/{job_file_stem}_blog_{model}.txt"
+            blog_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}_blog_{model}.txt")
 
             with open(resolve_path(blog_path), "w", encoding="utf-8") as f:
                 f.write(blog)
@@ -599,10 +599,10 @@ def process_job(job):
         print(f"Processing pipeline started for job {job_id}")
 
         file_path = job["file"]
-        video_path = f"jobs/{job_file_stem}"
-        audio_path = f"jobs/{job_file_stem}.wav"
-        txt_path = f"jobs/{job_file_stem}.txt"
-        segments_path = f"jobs/{job_file_stem}_segments.json"
+        video_path = os.path.join(JOBS_FOLDER, job_file_stem)
+        audio_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}.wav")
+        txt_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}.txt")
+        segments_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}_segments.json")
         download_seconds = None
         audio_extraction_seconds = None
         transcription_seconds = None
@@ -707,7 +707,7 @@ def process_job(job):
 
             import glob
 
-            files = glob.glob(resolve_path(f"jobs/{job_file_stem}.*"))
+            files = glob.glob(os.path.join(JOBS_FOLDER, f"{job_file_stem}.*"))
 
             for f in files:
                 if f.endswith(".mp4") or f.endswith(".webm"):

@@ -1,8 +1,9 @@
 import os
 
-UPLOAD_FOLDER = "uploads"
-OUTPUT_FOLDER = "outputs"
-JOBS_FOLDER = "jobs"
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, "uploads")
+OUTPUT_FOLDER = os.path.join(PROJECT_ROOT, "outputs")
+JOBS_FOLDER = os.path.join(PROJECT_ROOT, "jobs")
 
 MAX_VIDEO_SIZE = 500 * 1024 * 1024  # 500MB
 
