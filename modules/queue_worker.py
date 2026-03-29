@@ -8,6 +8,7 @@ import requests
 import tempfile
 import wave
 import torch
+from xml.etree.ElementTree import ParseError
 from urllib.parse import parse_qs, urlparse
 
 from datetime import datetime, timezone
@@ -103,11 +104,21 @@ def fetch_youtube_transcript(video_url):
         raise RuntimeError("Could not determine the YouTube video id from the URL.")
 
     try:
-        transcript_segments = YouTubeTranscriptApi().fetch(video_id, languages=["en"])
-    except AttributeError:
-        transcript_segments = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
+        try:
+            transcript_segments = YouTubeTranscriptApi().fetch(video_id, languages=["en"])
+        except AttributeError:
+            transcript_segments = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
+    except (
+        CouldNotRetrieveTranscript,
+        NoTranscriptFound,
+        RequestBlocked,
+        TranscriptsDisabled,
+        VideoUnavailable,
+        ParseError,
+    ) as error:
+        raise RuntimeError(f"YouTube transcript fetch failed: {error}") from error
 
-    if not transcript_segment:
+    if not transcript_segments:
         raise RuntimeError("YouTube transcript response was empty.")
 
     normalized_segments = []
