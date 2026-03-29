@@ -8,6 +8,18 @@ from modules.pdf_generator import create_pdf
 from modules.summarizer import build_timestamped_summary
 
 blog_bp = Blueprint("blog", __name__)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _resolve_path(path):
+
+    if not path:
+        return path
+
+    if os.path.isabs(path):
+        return path
+
+    return os.path.join(PROJECT_ROOT, path)
 
 
 def _get_job(job_id):
@@ -22,33 +34,38 @@ def _get_job(job_id):
 
 def _read_text_file(path):
 
-    if not path or not os.path.exists(path):
+    resolved_path = _resolve_path(path)
+
+    if not resolved_path or not os.path.exists(resolved_path):
         return None
 
     for encoding in ("utf-8", "cp1252", "latin-1"):
         try:
-            with open(path, "r", encoding=encoding) as file_handle:
+            with open(resolved_path, "r", encoding=encoding) as file_handle:
                 return file_handle.read()
         except UnicodeDecodeError:
             continue
 
-    with open(path, "r", encoding="utf-8", errors="replace") as file_handle:
+    with open(resolved_path, "r", encoding="utf-8", errors="replace") as file_handle:
         return file_handle.read()
 
 
 def _build_pdf_from_text(source_path, text):
 
-    pdf_path = os.path.splitext(source_path)[0] + ".pdf"
+    resolved_source_path = _resolve_path(source_path)
+    pdf_path = os.path.splitext(resolved_source_path)[0] + ".pdf"
     create_pdf(text, pdf_path)
     return pdf_path
 
 
 def _read_segments_file(path):
 
-    if not path or not os.path.exists(path):
+    resolved_path = _resolve_path(path)
+
+    if not resolved_path or not os.path.exists(resolved_path):
         return None
 
-    with open(path, "r", encoding="utf-8") as file_handle:
+    with open(resolved_path, "r", encoding="utf-8") as file_handle:
         return json.load(file_handle)
 
 
@@ -80,7 +97,7 @@ def _get_timestamped_summary(job, plain_summary_text):
     timestamped_text = build_timestamped_summary(plain_summary_text, segments)
 
     if timestamped_path:
-        with open(timestamped_path, "w", encoding="utf-8") as file_handle:
+        with open(_resolve_path(timestamped_path), "w", encoding="utf-8") as file_handle:
             file_handle.write(timestamped_text)
 
     return timestamped_text, timestamped_path or job.get("summary_file")
@@ -124,7 +141,9 @@ def download_summary(job_id):
 
     summary_text, path = _get_timestamped_summary(job, summary_text)
 
-    if not path or not os.path.exists(path):
+    resolved_path = _resolve_path(path)
+
+    if not resolved_path or not os.path.exists(resolved_path):
         return "Summary not ready"
 
     pdf_path = _build_pdf_from_text(path, summary_text)
@@ -193,8 +212,9 @@ def download_blog(job_id):
         return error
 
     path = job.get("blog_file")
+    resolved_path = _resolve_path(path)
 
-    if not path or not os.path.exists(path):
+    if not resolved_path or not os.path.exists(resolved_path):
         return "Blog not ready"
 
     blog_text = _read_text_file(path)
