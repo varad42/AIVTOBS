@@ -107,7 +107,7 @@ def fetch_youtube_transcript(video_url):
     except AttributeError:
         transcript_segments = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
 
-    if not transcript_segments:
+    if not transcript_segment:
         raise RuntimeError("YouTube transcript response was empty.")
 
     normalized_segments = []
@@ -166,7 +166,7 @@ def download_youtube(url, output):
 
     subprocess.run(cmd, check=True)
 
-
+#123
 def extract_audio(video, audio):
 
     print(f"Extracting audio from {video} to {audio}")
