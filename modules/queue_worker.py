@@ -514,7 +514,7 @@ def process_job(job):
 
             return
 
-        if job["status"] == "summary_ready":
+        if job["status"] == "blog_requested":
             print(f"Blog generation started for job {job_id}")
 
             with open(
@@ -806,7 +806,7 @@ def worker_loop():
 
         if not job:
             job = jobs_collection.find_one(
-                {"status": "summary_ready"}
+                {"status": "blog_requested"}
             )
 
         if job:

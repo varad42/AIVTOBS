@@ -14,6 +14,8 @@
 {% set progress = 60 %}
 {% elif job.status == "waiting_for_model" %}
 {% set progress = 80 %}
+{% elif job.status == "blog_requested" %}
+{% set progress = 90 %}
 {% elif job.status == "summary_ready" %}
 {% set progress = 100 %}
 {% elif job.status == "blog_ready" %}
@@ -64,6 +66,10 @@
             {% if job.get("summary_file") %}
             <a class="btn-secondary" href="/summary/{{ job.job_id }}">View Summary</a>
             <a class="btn-ghost" href="/download_summary/{{ job.job_id }}">Download Summary</a>
+            {% endif %}
+
+            {% if job.get("summary_file") and not job.get("blog_file") and job.status != "blog_requested" %}
+            <a class="btn-secondary" href="/generate_blog/{{ job.job_id }}">Generate Blog</a>
             {% endif %}
 
             {% if job.get("blog_file") %}
