@@ -15,12 +15,16 @@ from faster_whisper import WhisperModel
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import (
     CouldNotRetrieveTranscript,
-    IpBlocked,
     NoTranscriptFound,
     RequestBlocked,
     TranscriptsDisabled,
     VideoUnavailable,
 )
+
+try:
+    from youtube_transcript_api._errors import IpBlocked
+except ImportError:
+    IpBlocked = RequestBlocked
 
 from config import YTDLP_COOKIES_FILE, YTDLP_COOKIES_FROM_BROWSER
 from database.mongo import jobs_collection
