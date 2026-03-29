@@ -3,6 +3,7 @@ import os
 import subprocess
 import traceback
 import json
+import re
 import requests
 import tempfile
 import wave
@@ -391,6 +392,8 @@ def build_timestamp_summary_text(sections, model_name):
             print(f"Timestamp summary failed for section at {section['start']:.2f}s: {error}")
             section_summary = clean_transcript_text(summary_input)
 
+        section_summary = re.sub(r"\[\d{1,2}:\d{2}(?::\d{2})?\]\s*", "", section_summary)
+        section_summary = re.sub(r"(?:(?<=^)|(?<=\s))\d{1,2}:\d{2}(?::\d{2})?\s*-\s*", "", section_summary)
         section_summary = " ".join(section_summary.split())
         if not section_summary:
             continue
@@ -478,19 +481,8 @@ def process_job(job):
                 )
 
             out = f"jobs/{job_file_stem}_summary_{model}.txt"
-            timestamped_out = f"jobs/{job_file_stem}_summary_{model}_timestamped.txt"
             print(f"Saving summary for job {job_id} using model {model} to {out}")
             save_text_file(out, summary)
-
-            segments_path = (
-                job.get("segments_file")
-                or f"jobs/{job_file_stem}_segments.json"
-            )
-            segments = load_segments_file(segments_path)
-            timestamped_summary = build_timestamped_summary(summary, segments)
-
-            with open(timestamped_out, "w", encoding="utf-8") as file_handle:
-                file_handle.write(timestamped_summary)
 
             summary_saved_at = datetime.now(timezone.utc)
             model_selected_at = parse_utc_datetime(job.get("model_selected_at"))

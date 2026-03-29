@@ -100,8 +100,6 @@ def view_summary(job_id):
     if summary_text is None:
         return "Summary not ready"
 
-    summary_text, _ = _get_timestamped_summary(job, summary_text)
-
     return render_template(
         "summary.html",
         summary=summary_text,
