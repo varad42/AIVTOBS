@@ -32,6 +32,18 @@ _whisper_model_cache = {}
 WHISPER_CHUNK_SECONDS = 420
 TIMESTAMP_SUMMARY_SECTION_SECONDS = 300
 TIMESTAMP_SUMMARY_MAX_CHARS = 2200
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def resolve_path(path):
+
+    if not path:
+        return path
+
+    if os.path.isabs(path):
+        return path
+
+    return os.path.join(PROJECT_ROOT, path)
 
 
 def get_whisper_runtime_config():
@@ -176,17 +188,19 @@ def download_youtube(url, output):
 #123
 def extract_audio(video, audio):
 
-    print(f"Extracting audio from {video} to {audio}")
+    resolved_video = resolve_path(video)
+    resolved_audio = resolve_path(audio)
+    print(f"Extracting audio from {resolved_video} to {resolved_audio}")
 
     cmd = [
         "ffmpeg",
-        "-i", video,
+        "-i", resolved_video,
         "-vn",
         "-ac", "1",
         "-ar", "16000",
         "-f", "wav",
         "-acodec", "pcm_s16le",
-        audio,
+        resolved_audio,
         "-y"
     ]
 
@@ -223,7 +237,7 @@ def preload_whisper_model():
 
 def get_wav_duration_seconds(audio_path):
 
-    with wave.open(audio_path, "rb") as wav_file:
+    with wave.open(resolve_path(audio_path), "rb") as wav_file:
         frame_rate = wav_file.getframerate()
         frame_count = wav_file.getnframes()
 
@@ -240,7 +254,7 @@ def split_wav_into_chunks(audio_path, chunk_seconds=WHISPER_CHUNK_SECONDS):
 
     cmd = [
         "ffmpeg",
-        "-i", audio_path,
+        "-i", resolve_path(audio_path),
         "-f", "segment",
         "-segment_time", str(chunk_seconds),
         "-ac", "1",
@@ -265,7 +279,8 @@ def transcribe_with_whisper(audio_path, language=None, task="transcribe", whispe
 
     print(f"Preparing faster-whisper transcription for audio: {audio_path}")
     model = get_whisper_model(whisper_model_name)
-    audio_duration_seconds = get_wav_duration_seconds(audio_path)
+    resolved_audio_path = resolve_path(audio_path)
+    audio_duration_seconds = get_wav_duration_seconds(resolved_audio_path)
     transcribe_kwargs = {
         "beam_size": beam_size,
         "task": task
@@ -330,7 +345,7 @@ def transcribe_audio(audio_path, txt_path, language=None, task="transcribe", whi
         beam_size=beam_size
     )
 
-    with open(txt_path, "w", encoding="utf-8") as f:
+    with open(resolve_path(txt_path), "w", encoding="utf-8") as f:
         f.write(text)
 
     print(f"Transcript saved to {txt_path}")
@@ -339,13 +354,13 @@ def transcribe_audio(audio_path, txt_path, language=None, task="transcribe", whi
 
 def save_text_file(path, text):
 
-    with open(path, "w", encoding="utf-8") as f:
+    with open(resolve_path(path), "w", encoding="utf-8") as f:
         f.write(text)
 
 
 def read_text_file(path):
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(resolve_path(path), "r", encoding="utf-8") as f:
         return f.read()
 
 
@@ -465,7 +480,7 @@ def process_job(job):
             print(f"Summary generation started for job {job_id}")
 
             with open(
-                job["transcript_file"],
+                resolve_path(job["transcript_file"]),
                 "r",
                 encoding="utf-8"
             ) as f:
@@ -477,7 +492,7 @@ def process_job(job):
 
             print(f"Saving cleaned transcript for job {job_id} to {cleaned_text_path}")
 
-            with open(cleaned_text_path, "w", encoding="utf-8") as f:
+            with open(resolve_path(cleaned_text_path), "w", encoding="utf-8") as f:
                 f.write(cleaned_text)
 
             model = job.get(
@@ -488,9 +503,9 @@ def process_job(job):
             summary = ""
             segments_path = job.get("transcript_segments_file")
 
-            if segments_path and os.path.exists(segments_path):
+            if segments_path and os.path.exists(resolve_path(segments_path)):
                 try:
-                    with open(segments_path, "r", encoding="utf-8") as f:
+                    with open(resolve_path(segments_path), "r", encoding="utf-8") as f:
                         transcript_segments = json.load(f)
 
                     timestamp_sections = build_timed_summary_sections(transcript_segments)
@@ -552,7 +567,7 @@ def process_job(job):
             print(f"Blog generation started for job {job_id}")
 
             with open(
-                job["summary_file"],
+                resolve_path(job["summary_file"]),
                 "r",
                 encoding="utf-8"
             ) as f:
@@ -562,7 +577,7 @@ def process_job(job):
             model = job.get("summary_model", "t5")
             blog_path = f"jobs/{job_file_stem}_blog_{model}.txt"
 
-            with open(blog_path, "w", encoding="utf-8") as f:
+            with open(resolve_path(blog_path), "w", encoding="utf-8") as f:
                 f.write(blog)
 
             jobs_collection.update_one(
@@ -692,9 +707,7 @@ def process_job(job):
 
             import glob
 
-            files = glob.glob(
-                f"jobs/{job_file_stem}.*"
-            )
+            files = glob.glob(resolve_path(f"jobs/{job_file_stem}.*"))
 
             for f in files:
                 if f.endswith(".mp4") or f.endswith(".webm"):
