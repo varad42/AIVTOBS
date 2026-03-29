@@ -6,7 +6,8 @@ JOBS_FOLDER = "jobs"
 
 MAX_VIDEO_SIZE = 500 * 1024 * 1024  # 500MB
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+SUPABASE_URL = os.getenv("SUPABASE_URL", os.getenv("VITE_SUPABASE_URL", ""))
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", os.getenv("VITE_SUPABASE_ANON_KEY", ""))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")

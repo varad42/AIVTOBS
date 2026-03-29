@@ -7,11 +7,11 @@ import re
 import requests
 import tempfile
 import wave
+import torch
 from urllib.parse import parse_qs, urlparse
 
 from datetime import datetime, timezone
 from faster_whisper import WhisperModel
-from pymongo import ReturnDocument
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import (
     CouldNotRetrieveTranscript,
@@ -31,6 +31,20 @@ _whisper_model_cache = {}
 WHISPER_CHUNK_SECONDS = 420
 TIMESTAMP_SUMMARY_SECTION_SECONDS = 300
 TIMESTAMP_SUMMARY_MAX_CHARS = 2200
+
+
+def get_whisper_runtime_config():
+
+    if torch.cuda.is_available():
+        return {
+            "device": "cuda",
+            "compute_type": "float16"
+        }
+
+    return {
+        "device": "cpu",
+        "compute_type": "int8"
+    }
 
 
 def parse_utc_datetime(value):
@@ -168,11 +182,15 @@ def extract_audio(video, audio):
 def get_whisper_model(model_name="base"):
 
     if model_name not in _whisper_model_cache:
-        print(f"Loading faster-whisper model into memory: {model_name}")
+        runtime_config = get_whisper_runtime_config()
+        print(
+            f"Loading faster-whisper model into memory: {model_name} "
+            f"on {runtime_config['device']} with {runtime_config['compute_type']}"
+        )
         _whisper_model_cache[model_name] = WhisperModel(
             model_name,
-            device="cpu",
-            compute_type="int8"
+            device=runtime_config["device"],
+            compute_type=runtime_config["compute_type"]
         )
 
     return _whisper_model_cache[model_name]
@@ -416,8 +434,7 @@ def claim_next_job(worker_started_at):
             "$set": {
                 "status": "processing"
             }
-        },
-        return_document=ReturnDocument.AFTER
+        }
     )
 
 
