@@ -1,7 +1,7 @@
 import os
 import json
 
-from flask import Blueprint, render_template, send_file
+from flask import Blueprint, render_template, send_file, redirect
 
 from database.mongo import jobs_collection
 from modules.pdf_generator import create_pdf
@@ -95,6 +95,7 @@ def view_summary(job_id):
         return error
 
     summary_text = _read_text_file(job.get("summary_file"))
+    timestamp_summary_text = _read_text_file(job.get("timestamp_summary_file"))
 
     if summary_text is None:
         return "Summary not ready"
@@ -104,6 +105,7 @@ def view_summary(job_id):
     return render_template(
         "summary.html",
         summary=summary_text,
+        timestamp_summary=timestamp_summary_text,
         job_id=job_id,
         model_name=job.get("summary_model", "t5")
     )
@@ -156,6 +158,32 @@ def view_blog(job_id):
         job_id=job_id,
         model_name=job.get("summary_model", "t5")
     )
+
+
+@blog_bp.route("/generate_blog/<job_id>")
+def generate_blog_for_job(job_id):
+
+    job, error = _get_job(job_id)
+
+    if error:
+        return error
+
+    if not job.get("summary_file"):
+        return "Summary not ready"
+
+    if job.get("blog_file"):
+        return redirect(f"/blog/{job_id}")
+
+    jobs_collection.update_one(
+        {"job_id": job_id},
+        {
+            "$set": {
+                "status": "blog_requested"
+            }
+        }
+    )
+
+    return redirect(f"/processing/{job_id}")
 
 
 @blog_bp.route("/download_blog/<job_id>")

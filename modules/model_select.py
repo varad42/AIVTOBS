@@ -33,6 +33,20 @@ SUMMARY_MODEL_OPTIONS = [
     },
 ]
 ALLOWED_SUMMARY_MODELS = {option["value"] for option in SUMMARY_MODEL_OPTIONS}
+TRANSCRIPT_SOURCE_OPTIONS = [
+    {
+        "value": "processed",
+        "label": "Processed Transcript",
+        "description": "Recommended. Uses the transcript file currently prepared for summarization.",
+        "checked": True,
+    },
+    {
+        "value": "raw",
+        "label": "Raw Transcription",
+        "description": "Use the original raw transcription output before cleaning or translation.",
+    },
+]
+ALLOWED_TRANSCRIPT_SOURCES = {option["value"] for option in TRANSCRIPT_SOURCE_OPTIONS}
 
 
 def get_available_summary_model_options():
@@ -65,9 +79,49 @@ def get_available_summary_model_options():
     return available_options
 
 
+def get_available_transcript_source_options(job):
+
+    original_transcript_file = job.get("original_transcript_file")
+    available_options = []
+
+    for option in TRANSCRIPT_SOURCE_OPTIONS:
+        option_data = dict(option)
+
+        if option_data["value"] == "raw":
+            option_data["enabled"] = bool(original_transcript_file)
+            if not option_data["enabled"]:
+                option_data["description"] += " Unavailable until the original transcript exists."
+        else:
+            option_data["enabled"] = bool(job.get("transcript_file"))
+
+        if not option_data["enabled"]:
+            option_data.pop("checked", None)
+
+        available_options.append(option_data)
+
+    selected_source = job.get("summary_transcript_source", "processed")
+    any_checked = False
+
+    for option in available_options:
+        if option["enabled"] and option["value"] == selected_source:
+            option["checked"] = True
+            any_checked = True
+        else:
+            option.pop("checked", None)
+
+    if not any_checked:
+        for option in available_options:
+            if option["enabled"]:
+                option["checked"] = True
+                break
+
+    return available_options
+
+
 @model_bp.route("/select_model/<job_id>", methods=["GET", "POST"])
 def select_model(job_id):
     summary_model_options = get_available_summary_model_options()
+    transcript_source_options = []
     enabled_models = {
         option["value"]
         for option in summary_model_options
@@ -80,9 +134,17 @@ def select_model(job_id):
         print(f"Model selection failed: job {job_id} not found")
         return "Job not found"
 
+    transcript_source_options = get_available_transcript_source_options(job)
+    enabled_transcript_sources = {
+        option["value"]
+        for option in transcript_source_options
+        if option["enabled"]
+    }
+
     if request.method == "POST":
 
         model = request.form.get("model")
+        transcript_source = request.form.get("transcript_source", "processed")
 
         if model not in ALLOWED_SUMMARY_MODELS:
             print(f"Invalid model selected for job {job_id}: {model}")
@@ -92,13 +154,28 @@ def select_model(job_id):
             print(f"Unavailable model selected for job {job_id}: {model}")
             return "Selected model is currently unavailable", 400
 
-        print(f"Model selected for job {job_id}: {model}")
+        if transcript_source not in ALLOWED_TRANSCRIPT_SOURCES:
+            print(f"Invalid transcript source selected for job {job_id}: {transcript_source}")
+            return "Invalid transcript source selected", 400
+
+        if transcript_source not in enabled_transcript_sources:
+            print(f"Unavailable transcript source selected for job {job_id}: {transcript_source}")
+            return "Selected transcript source is currently unavailable", 400
+
+        if transcript_source == "raw":
+            selected_transcript_file = job.get("original_transcript_file") or job.get("transcript_file")
+        else:
+            selected_transcript_file = job.get("transcript_file") or job.get("original_transcript_file")
+
+        print(f"Model selected for job {job_id}: {model} using transcript source {transcript_source}")
 
         jobs_collection.update_one(
             {"job_id": job_id},
             {
                 "$set": {
                     "summary_model": model,
+                    "summary_transcript_source": transcript_source,
+                    "transcript_file": selected_transcript_file,
                     "status": "summarize_requested",
                     "model_selected_at": datetime.now(timezone.utc)
                 }
@@ -110,5 +187,6 @@ def select_model(job_id):
     return render_template(
         "select_model.html",
         job=job,
-        summary_model_options=summary_model_options
+        summary_model_options=summary_model_options,
+        transcript_source_options=transcript_source_options
     )
