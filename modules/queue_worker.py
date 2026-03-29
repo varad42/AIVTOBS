@@ -14,18 +14,14 @@ from urllib.parse import parse_qs, urlparse
 from datetime import datetime, timezone
 from faster_whisper import WhisperModel
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import (
-    CouldNotRetrieveTranscript,
-    NoTranscriptFound,
-    RequestBlocked,
-    TranscriptsDisabled,
-    VideoUnavailable,
-)
+from youtube_transcript_api import _errors as yta_errors
 
-try:
-    from youtube_transcript_api._errors import IpBlocked
-except ImportError:
-    IpBlocked = RequestBlocked
+CouldNotRetrieveTranscript = yta_errors.CouldNotRetrieveTranscript
+NoTranscriptFound = getattr(yta_errors, "NoTranscriptFound", CouldNotRetrieveTranscript)
+RequestBlocked = getattr(yta_errors, "RequestBlocked", CouldNotRetrieveTranscript)
+TranscriptsDisabled = getattr(yta_errors, "TranscriptsDisabled", CouldNotRetrieveTranscript)
+VideoUnavailable = getattr(yta_errors, "VideoUnavailable", CouldNotRetrieveTranscript)
+IpBlocked = getattr(yta_errors, "IpBlocked", RequestBlocked)
 
 from config import YTDLP_COOKIES_FILE, YTDLP_COOKIES_FROM_BROWSER
 from database.mongo import jobs_collection
