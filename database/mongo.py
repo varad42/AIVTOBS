@@ -229,6 +229,23 @@ class SupabaseCollection:
 
         return response.json()
 
+    def _fetch_first_by_status(self, status):
+
+        rows = self._request(
+            "GET",
+            params={
+                "select": "id,data,created_at,updated_at",
+                "data->>status": f"eq.{status}",
+                "order": "id.asc",
+                "limit": "1"
+            }
+        )
+
+        if not rows:
+            return None
+
+        return _row_to_document(rows[0])
+
     def _list_rows(self):
 
         rows = self._request(
@@ -337,6 +354,38 @@ class SupabaseCollection:
         return UpdateResult(matched_count=1, modified_count=1)
 
     def find_one_and_update(self, filter_spec, update_spec, return_document=None):
+
+        if filter_spec == {"status": "uploaded"} and update_spec == {"$set": {"status": "processing"}}:
+            existing_document = self._fetch_first_by_status("uploaded")
+
+            if not existing_document:
+                return None
+
+            document_id = existing_document["_id"]
+            updated_document = _apply_update(existing_document, update_spec)
+            serialized_document = _serialize_value(
+                {
+                    key: value
+                    for key, value in updated_document.items()
+                    if key != "_id"
+                }
+            )
+
+            rows = self._request(
+                "PATCH",
+                params={
+                    "id": f"eq.{document_id}",
+                    "data->>status": "eq.uploaded",
+                    "select": "id,data,created_at,updated_at"
+                },
+                json_payload={"data": serialized_document},
+                prefer="return=representation"
+            )
+
+            if not rows:
+                return None
+
+            return _row_to_document(rows[0])
 
         existing_document = self.find_one(filter_spec)
 
