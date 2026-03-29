@@ -102,7 +102,10 @@ def fetch_youtube_transcript(video_url):
     if not video_id:
         raise RuntimeError("Could not determine the YouTube video id from the URL.")
 
-    transcript_segments = YouTubeTranscriptApi().fetch(video_id, languages=["en"])
+    try:
+        transcript_segments = YouTubeTranscriptApi().fetch(video_id, languages=["en"])
+    except AttributeError:
+        transcript_segments = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
 
     if not transcript_segments:
         raise RuntimeError("YouTube transcript response was empty.")
