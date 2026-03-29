@@ -117,10 +117,38 @@ def upload():
                 flash("A recent job for this file already exists. Reusing that job instead of starting a duplicate.", "info")
                 return redirect(f"/processing/{duplicate_job['job_id']}")
 
+            placeholder_job = {
+                "job_id": job_id,
+                "job_slug": job_slug,
+                "user": session["user"],
+                "file": file_path,
+                "source_type": source_type,
+                "status": "uploading",
+                "queued_at": datetime.now(timezone.utc),
+                "local_upload_seconds": None,
+                "transcription_provider": "whisper",
+                "summary_model": None,
+                "blog": None
+            }
+            jobs_collection.insert_one(placeholder_job)
+            print(f"Job placeholder created before upload: {job_id} ({job_slug})")
+
             local_upload_started_at = time.perf_counter()
             video.save(file_path)
             local_upload_seconds = time.perf_counter() - local_upload_started_at
             print(f"Video saved to: {file_path}")
+
+            jobs_collection.update_one(
+                {"job_id": job_id},
+                {
+                    "$set": {
+                        "status": "uploaded",
+                        "uploaded_at": datetime.now(timezone.utc),
+                        "local_upload_seconds": local_upload_seconds
+                    }
+                }
+            )
+            print(f"Local upload completed and queued: {job_id}")
 
         elif youtube_url:
             print(f"YouTube URL received: {youtube_url}")
@@ -161,8 +189,9 @@ def upload():
 
         }
 
-        jobs_collection.insert_one(job_data)
-        print(f"Job created: {job_id} ({job_slug})")
+        if source_type == "youtube":
+            jobs_collection.insert_one(job_data)
+            print(f"Job created: {job_id} ({job_slug})")
 
         return redirect(f"/processing/{job_id}")
     return redirect("/dashboard")

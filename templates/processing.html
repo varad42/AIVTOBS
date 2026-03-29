@@ -6,7 +6,9 @@
 <meta http-equiv="refresh" content="3">
 
 {% set progress = 5 %}
-{% if job.status == "downloading" %}
+{% if job.status == "uploading" %}
+{% set progress = 10 %}
+{% elif job.status == "downloading" %}
 {% set progress = 20 %}
 {% elif job.status == "extracting_audio" %}
 {% set progress = 40 %}
