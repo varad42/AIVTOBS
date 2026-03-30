@@ -6,8 +6,8 @@ import uuid
 from urllib.parse import urlparse
 from datetime import datetime, timedelta, timezone
 
-from config import UPLOAD_FOLDER
 from database.mongo import jobs_collection
+from modules.cloud_storage import build_upload_path, save_upload
 
 upload_bp = Blueprint("upload", __name__)
 DEDUPLICATION_WINDOW_MINUTES = 1
@@ -100,10 +100,8 @@ def upload():
             print(f"Video file received: {video.filename}")
             source_type = "local"
 
-            file_path = os.path.join(
-                UPLOAD_FOLDER,
-                video.filename
-            )
+            file_extension = os.path.splitext(video.filename)[1]
+            file_path = build_upload_path(f"{job_slug}{file_extension}")
 
             source_identifier = file_path
             duplicate_job = find_recent_duplicate_job(
@@ -134,7 +132,7 @@ def upload():
             print(f"Job placeholder created before upload: {job_id} ({job_slug})")
 
             local_upload_started_at = time.perf_counter()
-            video.save(file_path)
+            save_upload(video, file_path)
             local_upload_seconds = time.perf_counter() - local_upload_started_at
             print(f"Video saved to: {file_path}")
 

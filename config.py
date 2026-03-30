@@ -8,6 +8,10 @@ JOBS_FOLDER = os.path.abspath(
         os.getenv("JOBS_FOLDER", os.path.join(PROJECT_ROOT, "jobs"))
     )
 )
+GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "")
+GCS_UPLOAD_PREFIX = os.getenv("GCS_UPLOAD_PREFIX", "uploads")
+GCS_JOBS_PREFIX = os.getenv("GCS_JOBS_PREFIX", "jobs")
+GCS_OUTPUT_PREFIX = os.getenv("GCS_OUTPUT_PREFIX", "outputs")
 
 MAX_VIDEO_SIZE = 500 * 1024 * 1024  # 500MB
 

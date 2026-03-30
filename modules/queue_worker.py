@@ -6,6 +6,7 @@ import json
 import re
 import requests
 import tempfile
+import shutil
 import wave
 import torch
 from xml.etree.ElementTree import ParseError
@@ -26,6 +27,16 @@ IpBlocked = getattr(yta_errors, "IpBlocked", RequestBlocked)
 from config import JOBS_FOLDER, YTDLP_COOKIES_FILE, YTDLP_COOKIES_FROM_BROWSER
 from database.mongo import jobs_collection
 from modules.blog_generator import generate_blog
+from modules.cloud_storage import (
+    build_job_path,
+    download_to_local,
+    exists as storage_exists,
+    read_json,
+    read_text,
+    upload_json,
+    upload_local_file,
+    upload_text,
+)
 from modules.summarizer import clean_transcript_text, summarize_section_text, summarize_text
 
 _whisper_model_cache = {}
@@ -353,15 +364,11 @@ def transcribe_audio(audio_path, txt_path, language=None, task="transcribe", whi
 
 
 def save_text_file(path, text):
-
-    with open(resolve_path(path), "w", encoding="utf-8") as f:
-        f.write(text)
+    upload_text(path, text)
 
 
 def read_text_file(path):
-
-    with open(resolve_path(path), "r", encoding="utf-8") as f:
-        return f.read()
+    return read_text(path)
 
 
 def format_timestamp(seconds):
@@ -479,21 +486,13 @@ def process_job(job):
         if job["status"] == "summarize_requested":
             print(f"Summary generation started for job {job_id}")
 
-            with open(
-                resolve_path(job["transcript_file"]),
-                "r",
-                encoding="utf-8"
-            ) as f:
-
-                text = f.read()
+            text = read_text(job["transcript_file"])
 
             cleaned_text = clean_transcript_text(text)
-            cleaned_text_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}_cleaned.txt")
+            cleaned_text_path = build_job_path(f"{job_file_stem}_cleaned.txt")
 
             print(f"Saving cleaned transcript for job {job_id} to {cleaned_text_path}")
-
-            with open(resolve_path(cleaned_text_path), "w", encoding="utf-8") as f:
-                f.write(cleaned_text)
+            upload_text(cleaned_text_path, cleaned_text)
 
             model = job.get(
                 "summary_model",
@@ -503,10 +502,9 @@ def process_job(job):
             summary = ""
             segments_path = job.get("transcript_segments_file")
 
-            if segments_path and os.path.exists(resolve_path(segments_path)):
+            if segments_path and storage_exists(segments_path):
                 try:
-                    with open(resolve_path(segments_path), "r", encoding="utf-8") as f:
-                        transcript_segments = json.load(f)
+                    transcript_segments = read_json(segments_path)
 
                     timestamp_sections = build_timed_summary_sections(transcript_segments)
                     timestamp_summary_text = build_timestamp_summary_text(
@@ -526,9 +524,9 @@ def process_job(job):
                     model
                 )
 
-            out = os.path.join(JOBS_FOLDER, f"{job_file_stem}_summary_{model}.txt")
+            out = build_job_path(f"{job_file_stem}_summary_{model}.txt")
             print(f"Saving summary for job {job_id} using model {model} to {out}")
-            save_text_file(out, summary)
+            upload_text(out, summary)
 
             summary_saved_at = datetime.now(timezone.utc)
             model_selected_at = parse_utc_datetime(job.get("model_selected_at"))
@@ -566,19 +564,12 @@ def process_job(job):
         if job["status"] == "blog_requested":
             print(f"Blog generation started for job {job_id}")
 
-            with open(
-                resolve_path(job["summary_file"]),
-                "r",
-                encoding="utf-8"
-            ) as f:
-                summary = f.read()
+            summary = read_text(job["summary_file"])
 
             blog = generate_blog(summary)
             model = job.get("summary_model", "t5")
-            blog_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}_blog_{model}.txt")
-
-            with open(resolve_path(blog_path), "w", encoding="utf-8") as f:
-                f.write(blog)
+            blog_path = build_job_path(f"{job_file_stem}_blog_{model}.txt")
+            upload_text(blog_path, blog)
 
             jobs_collection.update_one(
                 {"job_id": job_id},
@@ -599,224 +590,218 @@ def process_job(job):
         print(f"Processing pipeline started for job {job_id}")
 
         file_path = job["file"]
-        video_path = os.path.join(JOBS_FOLDER, job_file_stem)
-        audio_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}.wav")
-        txt_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}.txt")
-        segments_path = os.path.join(JOBS_FOLDER, f"{job_file_stem}_segments.json")
+        transcript_path = build_job_path(f"{job_file_stem}.txt")
+        segments_path = build_job_path(f"{job_file_stem}_segments.json")
         download_seconds = None
         audio_extraction_seconds = None
         transcription_seconds = None
+        with tempfile.TemporaryDirectory(prefix=f"job_{job_file_stem}_") as work_dir:
+            video_path = os.path.join(work_dir, job_file_stem)
+            audio_path = os.path.join(work_dir, f"{job_file_stem}.wav")
+            local_transcript_path = os.path.join(work_dir, f"{job_file_stem}.txt")
 
-        if file_path.startswith("http"):
-            print(f"Job {job_id} is a YouTube URL")
+            if file_path.startswith("http"):
+                print(f"Job {job_id} is a YouTube URL")
+
+                jobs_collection.update_one(
+                    {"job_id": job_id},
+                    {"$set": {"status": "downloading"}}
+                )
+
+                transcript_started_at = time.perf_counter()
+
+                try:
+                    print(f"Trying YouTube transcript fetch first for job {job_id}")
+                    transcript_text, transcript_segments = fetch_youtube_transcript(file_path)
+                    upload_text(transcript_path, transcript_text)
+                    upload_json(segments_path, transcript_segments)
+                    transcription_seconds = time.perf_counter() - transcript_started_at
+
+                    jobs_collection.update_one(
+                        {"job_id": job_id},
+                        {
+                            "$set": {
+                                "transcription_seconds": transcription_seconds
+                            }
+                        }
+                    )
+
+                    transcript_saved_at = datetime.now(timezone.utc)
+                    uploaded_at = parse_utc_datetime(job.get("uploaded_at"))
+                    upload_to_transcript_seconds = None
+
+                    if uploaded_at:
+                        upload_to_transcript_seconds = (
+                            transcript_saved_at - uploaded_at
+                        ).total_seconds()
+
+                    jobs_collection.update_one(
+                        {"job_id": job_id},
+                        {
+                            "$set": {
+                                "status": "waiting_for_model",
+                                "transcript_file": transcript_path,
+                                "original_transcript_file": transcript_path,
+                                "transcript_segments_file": segments_path,
+                                "transcript_saved_at": transcript_saved_at,
+                                "download_seconds": download_seconds,
+                                "audio_extraction_seconds": None,
+                                "transcription_seconds": transcription_seconds,
+                                "upload_to_transcript_seconds": upload_to_transcript_seconds,
+                                "transcription_provider": "youtube_transcript_api"
+                            }
+                        }
+                    )
+
+                    print(f"YouTube transcript ready for job {job_id}")
+                    print(f"YouTube caption transcript time: {transcription_seconds:.2f} seconds")
+                    if upload_to_transcript_seconds is not None:
+                        print(
+                            f"Time from upload/YouTube URL to transcript saved: "
+                            f"{upload_to_transcript_seconds:.2f} seconds"
+                        )
+                    return
+                except (
+                    CouldNotRetrieveTranscript,
+                    IpBlocked,
+                    NoTranscriptFound,
+                    RequestBlocked,
+                    TranscriptsDisabled,
+                    VideoUnavailable,
+                    RuntimeError,
+                ) as error:
+                    print(f"YouTube transcript unavailable for job {job_id}, falling back to Whisper: {error}")
+
+                download_started_at = time.perf_counter()
+                try:
+                    download_youtube(
+                        file_path,
+                        video_path
+                    )
+                except subprocess.CalledProcessError as error:
+                    raise RuntimeError(
+                        "YouTube transcript was unavailable, and the fallback video download was blocked by YouTube. "
+                        "This usually happens because of rate limiting or bot verification. "
+                        "Try again later, use another video, or provide the video file directly."
+                    ) from error
+
+                download_seconds = time.perf_counter() - download_started_at
+                jobs_collection.update_one(
+                    {"job_id": job_id},
+                    {
+                        "$set": {
+                            "download_seconds": download_seconds
+                        }
+                    }
+                )
+
+                import glob
+
+                files = glob.glob(f"{video_path}.*")
+
+                for f in files:
+                    if f.endswith(".mp4") or f.endswith(".webm"):
+                        video_path = f
+                        print(f"Downloaded video path resolved to {video_path}")
+                        break
+
+            else:
+                video_path = download_to_local(file_path, temp_dir=work_dir)
+                print(f"Job {job_id} is using uploaded file {video_path}")
 
             jobs_collection.update_one(
                 {"job_id": job_id},
-                {"$set": {"status": "downloading"}}
+                {"$set": {"status": "extracting_audio"}}
             )
 
-            transcript_started_at = time.perf_counter()
-
-            try:
-                print(f"Trying YouTube transcript fetch first for job {job_id}")
-                transcript_text, transcript_segments = fetch_youtube_transcript(file_path)
-                save_text_file(txt_path, transcript_text)
-                save_text_file(
-                    segments_path,
-                    json.dumps(transcript_segments, ensure_ascii=False, indent=2)
-                )
-                transcription_seconds = time.perf_counter() - transcript_started_at
-
-                jobs_collection.update_one(
-                    {"job_id": job_id},
-                    {
-                        "$set": {
-                            "transcription_seconds": transcription_seconds
-                        }
-                    }
-                )
-
-                transcript_saved_at = datetime.now(timezone.utc)
-                uploaded_at = parse_utc_datetime(job.get("uploaded_at"))
-                upload_to_transcript_seconds = None
-
-                if uploaded_at:
-                    upload_to_transcript_seconds = (
-                        transcript_saved_at - uploaded_at
-                    ).total_seconds()
-
-                jobs_collection.update_one(
-                    {"job_id": job_id},
-                    {
-                        "$set": {
-                            "status": "waiting_for_model",
-                            "transcript_file": txt_path,
-                            "original_transcript_file": txt_path,
-                            "transcript_segments_file": segments_path,
-                            "transcript_saved_at": transcript_saved_at,
-                            "download_seconds": download_seconds,
-                            "audio_extraction_seconds": None,
-                            "transcription_seconds": transcription_seconds,
-                            "upload_to_transcript_seconds": upload_to_transcript_seconds,
-                            "transcription_provider": "youtube_transcript_api"
-                        }
-                    }
-                )
-
-                print(f"YouTube transcript ready for job {job_id}")
-                print(f"YouTube caption transcript time: {transcription_seconds:.2f} seconds")
-                if upload_to_transcript_seconds is not None:
-                    print(
-                        f"Time from upload/YouTube URL to transcript saved: "
-                        f"{upload_to_transcript_seconds:.2f} seconds"
-                    )
-                return
-            except (
-                CouldNotRetrieveTranscript,
-                IpBlocked,
-                NoTranscriptFound,
-                RequestBlocked,
-                TranscriptsDisabled,
-                VideoUnavailable,
-                RuntimeError,
-            ) as error:
-                print(f"YouTube transcript unavailable for job {job_id}, falling back to Whisper: {error}")
-
-            download_started_at = time.perf_counter()
-            try:
-                download_youtube(
-                    file_path,
-                    video_path
-                )
-            except subprocess.CalledProcessError as error:
-                raise RuntimeError(
-                    "YouTube transcript was unavailable, and the fallback video download was blocked by YouTube. "
-                    "This usually happens because of rate limiting or bot verification. "
-                    "Try again later, use another video, or provide the video file directly."
-                ) from error
-
-            download_seconds = time.perf_counter() - download_started_at
+            audio_extraction_started_at = time.perf_counter()
+            extract_audio(
+                video_path,
+                audio_path
+            )
+            audio_extraction_seconds = time.perf_counter() - audio_extraction_started_at
             jobs_collection.update_one(
                 {"job_id": job_id},
                 {
                     "$set": {
-                        "download_seconds": download_seconds
+                        "audio_extraction_seconds": audio_extraction_seconds
                     }
                 }
             )
 
-            import glob
-
-            files = glob.glob(os.path.join(JOBS_FOLDER, f"{job_file_stem}.*"))
-
-            for f in files:
-                if f.endswith(".mp4") or f.endswith(".webm"):
-                    video_path = f
-                    print(f"Downloaded video path resolved to {video_path}")
-                    break
-
-        else:
-            video_path = file_path
-            print(f"Job {job_id} is using uploaded file {video_path}")
-
-        jobs_collection.update_one(
-            {"job_id": job_id},
-            {"$set": {"status": "extracting_audio"}}
-        )
-
-        audio_extraction_started_at = time.perf_counter()
-        extract_audio(
-            video_path,
-            audio_path
-        )
-        audio_extraction_seconds = time.perf_counter() - audio_extraction_started_at
-        jobs_collection.update_one(
-            {"job_id": job_id},
-            {
-                "$set": {
-                    "audio_extraction_seconds": audio_extraction_seconds
+            jobs_collection.update_one(
+                {"job_id": job_id},
+                {
+                    "$set": {
+                        "status": "transcribing",
+                        "transcription_provider": "whisper"
+                    }
                 }
-            }
-        )
-
-        jobs_collection.update_one(
-            {"job_id": job_id},
-            {
-                "$set": {
-                    "status": "transcribing",
-                    "transcription_provider": "whisper"
-                }
-            }
-        )
-
-        transcription_started_at = time.perf_counter()
-        transcription_info, transcript_segments = transcribe_audio(
-            audio_path,
-            txt_path,
-            language="en",
-            task="transcribe",
-            whisper_model_name="base",
-            beam_size=1
-        )
-        save_text_file(
-            segments_path,
-            json.dumps(transcript_segments, ensure_ascii=False, indent=2)
-        )
-        transcription_seconds = time.perf_counter() - transcription_started_at
-        jobs_collection.update_one(
-            {"job_id": job_id},
-            {
-                "$set": {
-                    "transcription_seconds": transcription_seconds
-                }
-            }
-        )
-
-        transcript_saved_at = datetime.now(timezone.utc)
-        uploaded_at = parse_utc_datetime(job.get("uploaded_at"))
-        upload_to_transcript_seconds = None
-
-        if uploaded_at:
-            upload_to_transcript_seconds = (
-                transcript_saved_at - uploaded_at
-            ).total_seconds()
-
-        transcript_file_for_summary = txt_path
-        original_transcript_file = txt_path
-
-        jobs_collection.update_one(
-            {"job_id": job_id},
-            {
-                "$set": {
-                    "status": "waiting_for_model",
-                    "transcript_file": transcript_file_for_summary,
-                    "original_transcript_file": original_transcript_file,
-                    "transcript_segments_file": segments_path,
-                    "transcript_saved_at": transcript_saved_at,
-                    "download_seconds": download_seconds,
-                    "audio_extraction_seconds": audio_extraction_seconds,
-                    "transcription_seconds": transcription_seconds,
-                    "upload_to_transcript_seconds": upload_to_transcript_seconds,
-                    "transcription_provider": "whisper",
-                    "whisper_model_used": "base",
-                    "whisper_beam_size": 1,
-                    "detected_language": getattr(transcription_info, "language", None)
-                }
-            }
-        )
-
-        print(f"Transcript ready for job {job_id}")
-        if download_seconds is not None:
-            print(f"YouTube download time: {download_seconds:.2f} seconds")
-        if audio_extraction_seconds is not None:
-            print(f"Audio extraction time: {audio_extraction_seconds:.2f} seconds")
-        if transcription_seconds is not None:
-            print(f"Transcription time: {transcription_seconds:.2f} seconds")
-        if upload_to_transcript_seconds is not None:
-            print(
-                f"Time from upload/YouTube URL to transcript saved: "
-                f"{upload_to_transcript_seconds:.2f} seconds"
             )
+
+            transcription_started_at = time.perf_counter()
+            transcription_info, transcript_segments = transcribe_audio(
+                audio_path,
+                local_transcript_path,
+                language="en",
+                task="transcribe",
+                whisper_model_name="base",
+                beam_size=1
+            )
+            upload_local_file(local_transcript_path, transcript_path, content_type="text/plain; charset=utf-8")
+            upload_json(segments_path, transcript_segments)
+            transcription_seconds = time.perf_counter() - transcription_started_at
+            jobs_collection.update_one(
+                {"job_id": job_id},
+                {
+                    "$set": {
+                        "transcription_seconds": transcription_seconds
+                    }
+                }
+            )
+
+            transcript_saved_at = datetime.now(timezone.utc)
+            uploaded_at = parse_utc_datetime(job.get("uploaded_at"))
+            upload_to_transcript_seconds = None
+
+            if uploaded_at:
+                upload_to_transcript_seconds = (
+                    transcript_saved_at - uploaded_at
+                ).total_seconds()
+
+            jobs_collection.update_one(
+                {"job_id": job_id},
+                {
+                    "$set": {
+                        "status": "waiting_for_model",
+                        "transcript_file": transcript_path,
+                        "original_transcript_file": transcript_path,
+                        "transcript_segments_file": segments_path,
+                        "transcript_saved_at": transcript_saved_at,
+                        "download_seconds": download_seconds,
+                        "audio_extraction_seconds": audio_extraction_seconds,
+                        "transcription_seconds": transcription_seconds,
+                        "upload_to_transcript_seconds": upload_to_transcript_seconds,
+                        "transcription_provider": "whisper",
+                        "whisper_model_used": "base",
+                        "whisper_beam_size": 1,
+                        "detected_language": getattr(transcription_info, "language", None)
+                    }
+                }
+            )
+
+            print(f"Transcript ready for job {job_id}")
+            if download_seconds is not None:
+                print(f"YouTube download time: {download_seconds:.2f} seconds")
+            if audio_extraction_seconds is not None:
+                print(f"Audio extraction time: {audio_extraction_seconds:.2f} seconds")
+            if transcription_seconds is not None:
+                print(f"Transcription time: {transcription_seconds:.2f} seconds")
+            if upload_to_transcript_seconds is not None:
+                print(
+                    f"Time from upload/YouTube URL to transcript saved: "
+                    f"{upload_to_transcript_seconds:.2f} seconds"
+                )
 
     except Exception as e:
 
