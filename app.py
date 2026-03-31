@@ -84,9 +84,11 @@ app = create_app()
 
 if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG", "true").lower() == "true"
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "5000"))
 
     # Prevent duplicate worker threads when Flask debug reloader is enabled.
     if (not debug) or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         start_background_services()
 
-    app.run(debug=debug)
+    app.run(host=host, port=port, debug=debug)
