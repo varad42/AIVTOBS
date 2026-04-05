@@ -229,7 +229,7 @@ select {
 }
 
 .auth-card {
-    width: min(100%, 480px);
+    width: min(100%, 560px);
     display: flex;
     flex-direction: column;
     gap: 16px;
