@@ -422,6 +422,13 @@ select {
 .inline-link {
     color: var(--accent-cyan);
     font-weight: 700;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.reset-link-panel {
+    width: 100%;
+    overflow: hidden;
 }
 
 .dashboard-stage {
