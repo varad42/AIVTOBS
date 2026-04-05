@@ -12,6 +12,11 @@ def history():
 
     user = session["user"]
 
-    jobs = jobs_collection.find({"user": user}).sort("_id", -1)
+    jobs = jobs_collection.find(
+        {
+            "user": user,
+            "status": {"$in": ["summary_ready", "blog_ready"]},
+        }
+    ).sort("_id", -1)
 
     return render_template("history.html", jobs=jobs)

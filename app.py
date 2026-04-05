@@ -45,7 +45,14 @@ def create_app():
                 blog_ready_count=0
             )
 
-        jobs = list(jobs_collection.find({"user": session["user"]}).sort("_id", -1).limit(8))
+        jobs = list(
+            jobs_collection.find(
+                {
+                    "user": session["user"],
+                    "status": {"$in": ["summary_ready", "blog_ready"]},
+                }
+            ).sort("_id", -1).limit(8)
+        )
         summary_ready_count = sum(1 for job in jobs if job.get("summary_file"))
         blog_ready_count = sum(1 for job in jobs if job.get("blog_file"))
         active_job_id = request.args.get("job_id")
