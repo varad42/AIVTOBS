@@ -507,7 +507,7 @@ select {
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-columns: 220px minmax(0, 1fr);
     gap: 20px;
     align-items: start;
 }
@@ -521,11 +521,11 @@ select {
 .dashboard-sidebar {
     position: sticky;
     top: 20px;
-    min-height: calc(100vh - 40px);
+    min-height: auto;
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    padding: 22px;
+    gap: 14px;
+    padding: 18px;
     border-radius: var(--radius-lg);
     backdrop-filter: blur(18px);
     overflow: hidden;
@@ -645,8 +645,9 @@ select {
 }
 
 .history-mini-card h3 {
-    font-size: 0.98rem;
-    line-height: 1.45;
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.35;
     overflow-wrap: anywhere;
 }
 
@@ -669,12 +670,6 @@ select {
     gap: 12px;
 }
 
-.sidebar-footer {
-    display: grid;
-    gap: 12px;
-    margin-top: auto;
-}
-
 .account-card {
     position: relative;
     display: grid;
@@ -687,6 +682,11 @@ select {
 .workspace-stack {
     display: grid;
     gap: 20px;
+}
+
+.dashboard-logout {
+    margin-left: auto;
+    min-width: 110px;
 }
 
 .app-grid,
@@ -1013,7 +1013,7 @@ td {
 
 @media (max-width: 1180px) {
     .dashboard-shell {
-        grid-template-columns: 280px minmax(0, 1fr);
+        grid-template-columns: 220px minmax(0, 1fr);
     }
 }
 

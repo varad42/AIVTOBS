@@ -10,54 +10,25 @@
 <section class="dashboard-shell {% if show_login %}login-locked{% endif %}">
     <aside class="dashboard-sidebar panel" id="dashboardSidebar">
         <div class="sidebar-header">
-            <div>
-                <p class="auth-eyebrow">Navigation</p>
-                <h2 class="card-title">Sidebar</h2>
-            </div>
+            <h2 class="card-title">Sessions</h2>
             <button type="button" class="btn-ghost sidebar-toggle" id="sidebarToggle">Slide In</button>
         </div>
 
-        <div class="sidebar-section">
-            <a href="/history" class="sidebar-link">
-                <span>Full History</span>
-                <span>&rsaquo;</span>
-            </a>
-        </div>
-
         <div class="sidebar-section sidebar-scroll">
-            <div>
-                <h2 class="card-title">Sessions</h2>
-            </div>
-
             {% for job in jobs %}
             <article class="history-mini-card">
                 <h3>{{ job.get("job_slug", job.file) }}</h3>
-                <div class="history-mini-meta">
-                    <span>Video: {{ job.file }}</span>
-                    <span>Summary: {% if job.get("summary_file") %}Generated{% else %}Pending{% endif %}</span>
-                    <span>Blog: {% if job.get("blog_file") %}Generated{% else %}Pending{% endif %}</span>
-                </div>
                 <div class="history-mini-actions">
-                    <a href="/dashboard?job_id={{ job.job_id }}" class="mini-link">Status</a>
                     {% if job.get("summary_file") %}
                     <a href="/summary/{{ job.job_id }}" class="mini-link">Summary</a>
-                    {% endif %}
-                    {% if job.get("blog_file") %}
-                    <a href="/blog/{{ job.job_id }}" class="mini-link">Blog</a>
+                    {% else %}
+                    <a href="/dashboard?job_id={{ job.job_id }}" class="mini-link">Open</a>
                     {% endif %}
                 </div>
             </article>
             {% else %}
             <div class="empty-state">No history yet. Your generated videos, summaries, and blogs will appear here.</div>
             {% endfor %}
-        </div>
-
-        <div class="sidebar-footer">
-            <div class="account-card">
-                <p class="auth-eyebrow">Account details</p>
-                <strong>{{ session.get("user", "Active user") }}</strong>
-            </div>
-            <a href="/logout" class="btn-secondary">Logout</a>
         </div>
     </aside>
 
@@ -68,6 +39,7 @@
                     <h2 class="section-title">Upload Video</h2>
                     <p class="section-subtitle">Add a local video or a YouTube URL to start Faster-Whisper transcription and track progress right here.</p>
                 </div>
+                <a href="/logout" class="btn-secondary dashboard-logout">Logout</a>
             </div>
 
             <form method="POST" action="/upload" enctype="multipart/form-data" class="surface-form" id="dashboardUploadForm">
