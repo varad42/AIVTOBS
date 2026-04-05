@@ -8,12 +8,6 @@
 {% endif %}
 <div class="dashboard-stage">
 <section class="dashboard-shell {% if show_login %}login-locked{% endif %}">
-    <button type="button" class="sidebar-toggle-button" id="sidebarToggleButton" aria-controls="dashboardSidebar" aria-expanded="false" aria-label="Open history panel">
-        <span></span>
-        <span></span>
-        <span></span>
-    </button>
-
     <aside class="dashboard-sidebar panel" id="dashboardSidebar">
         <div class="sidebar-header">
             <h2 class="card-title">History</h2>
@@ -21,16 +15,12 @@
 
         <div class="sidebar-section sidebar-scroll">
             {% for job in jobs %}
+            <a href="/dashboard?job_id={{ job.job_id }}" class="history-job-link">
             <article class="history-mini-card">
                 <h3>{{ job.get("job_slug", job.file) }}</h3>
-                <div class="history-mini-actions">
-                    {% if job.get("summary_file") %}
-                    <a href="/summary/{{ job.job_id }}" class="mini-link">Summary</a>
-                    {% else %}
-                    <a href="/dashboard?job_id={{ job.job_id }}" class="mini-link">Open</a>
-                    {% endif %}
-                </div>
+                <p class="card-copy">Open job</p>
             </article>
+            </a>
             {% else %}
             <div class="empty-state">No history yet. Your generated videos, summaries, and blogs will appear here.</div>
             {% endfor %}
@@ -123,25 +113,8 @@
 </section>
 
 <script>
-    const dashboardShell = document.querySelector(".dashboard-shell");
-    const sidebarToggleButton = document.getElementById("sidebarToggleButton");
     const dashboardUploadForm = document.getElementById("dashboardUploadForm");
     const dashboardUploadButton = document.getElementById("dashboardUploadButton");
-
-    if (dashboardShell && sidebarToggleButton) {
-        const syncSidebarToggle = function () {
-            const isOpen = dashboardShell.classList.contains("sidebar-open");
-            sidebarToggleButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
-            sidebarToggleButton.setAttribute("aria-label", isOpen ? "Close history panel" : "Open history panel");
-        };
-
-        sidebarToggleButton.addEventListener("click", function () {
-            dashboardShell.classList.toggle("sidebar-open");
-            syncSidebarToggle();
-        });
-
-        syncSidebarToggle();
-    }
 
     if (dashboardUploadForm && dashboardUploadButton) {
         dashboardUploadForm.addEventListener("submit", function () {
