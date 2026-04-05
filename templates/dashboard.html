@@ -8,21 +8,13 @@
 {% endif %}
 <div class="dashboard-stage">
 <section class="dashboard-shell {% if show_login %}login-locked{% endif %}">
-    <button
-        type="button"
-        class="dashboard-menu-toggle"
-        id="dashboardMenuToggle"
-        aria-controls="dashboardSidebar"
-        aria-expanded="false"
-        aria-label="Toggle history sidebar"
-    >
-        <span></span>
-        <span></span>
-        <span></span>
-    </button>
-
     <aside class="dashboard-sidebar panel" id="dashboardSidebar">
         <div class="sidebar-header">
+            <div class="sidebar-handle" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
             <h2 class="card-title">History</h2>
         </div>
 
@@ -130,25 +122,8 @@
 </section>
 
 <script>
-    const dashboardShell = document.querySelector(".dashboard-shell");
-    const dashboardSidebar = document.getElementById("dashboardSidebar");
-    const dashboardMenuToggle = document.getElementById("dashboardMenuToggle");
     const dashboardUploadForm = document.getElementById("dashboardUploadForm");
     const dashboardUploadButton = document.getElementById("dashboardUploadButton");
-
-    if (dashboardShell && dashboardSidebar && dashboardMenuToggle) {
-        const syncSidebarState = function () {
-            const isOpen = dashboardShell.classList.contains("sidebar-open");
-            dashboardMenuToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-        };
-
-        dashboardMenuToggle.addEventListener("click", function () {
-            dashboardShell.classList.toggle("sidebar-open");
-            syncSidebarState();
-        });
-
-        syncSidebarState();
-    }
 
     if (dashboardUploadForm && dashboardUploadButton) {
         dashboardUploadForm.addEventListener("submit", function () {
