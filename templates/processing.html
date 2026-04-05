@@ -81,31 +81,5 @@
         </div>
     </div>
 
-    <aside class="stat-panel">
-        <h2 class="card-title">Timings</h2>
-        <div class="metric">
-            <span>{% if job.get("source_type") == "local" %}Local upload{% else %}YouTube download{% endif %}</span>
-            <strong>
-                {% if job.get("source_type") == "local" %}
-                    {% if job.get("local_upload_seconds") is not none %}{{ format_seconds(job.get("local_upload_seconds")) }}{% else %}Pending{% endif %}
-                {% else %}
-                    {% if job.get("download_seconds") is not none %}{{ format_seconds(job.get("download_seconds")) }}{% else %}Pending{% endif %}
-                {% endif %}
-            </strong>
-        </div>
-        <div class="metric">
-            <span>Audio extraction</span>
-            <strong>{% if job.get("audio_extraction_seconds") is not none %}{{ format_seconds(job.get("audio_extraction_seconds")) }}{% else %}Pending{% endif %}</strong>
-        </div>
-        <div class="metric">
-            <span>Transcription</span>
-            <strong>{% if job.get("transcription_seconds") is not none %}{{ format_seconds(job.get("transcription_seconds")) }}{% else %}Pending{% endif %}</strong>
-        </div>
-        <div class="metric">
-            <span>Model selection to summary saved</span>
-            <strong>{% if job.get("summary_generation_seconds") is not none %}{{ format_seconds(job.get("summary_generation_seconds")) }}{% else %}Pending{% endif %}</strong>
-        </div>
-        <p class="card-copy">Keep this page open until summary generation finishes. Once it is ready, the next actions appear automatically.</p>
-    </aside>
 </section>
 {% endblock %}
