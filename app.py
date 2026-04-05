@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import threading
 import os
-from flask import Flask, render_template, session, redirect
+from flask import Flask, render_template, session, redirect, request
 from config import SECRET_KEY
 from modules.model_select import model_bp
 from modules.blog import blog_bp
@@ -48,13 +48,56 @@ def create_app():
         jobs = list(jobs_collection.find({"user": session["user"]}).sort("_id", -1).limit(8))
         summary_ready_count = sum(1 for job in jobs if job.get("summary_file"))
         blog_ready_count = sum(1 for job in jobs if job.get("blog_file"))
+        active_job_id = request.args.get("job_id")
+        active_job = None
+
+        if active_job_id:
+            active_job = jobs_collection.find_one(
+                {"user": session["user"], "job_id": active_job_id}
+            )
+
+        if active_job is None and jobs:
+            active_job = jobs[0]
+
+        progress_map = {
+            "uploading": 10,
+            "uploaded": 15,
+            "downloading": 20,
+            "extracting_audio": 40,
+            "transcribing": 60,
+            "waiting_for_model": 80,
+            "summarize_requested": 85,
+            "blog_requested": 90,
+            "summary_ready": 100,
+            "blog_ready": 100,
+        }
+        active_progress = progress_map.get(
+            active_job.get("status"),
+            5
+        ) if active_job else 0
+        auto_refresh_statuses = {
+            "uploading",
+            "uploaded",
+            "downloading",
+            "extracting_audio",
+            "transcribing",
+            "waiting_for_model",
+            "summarize_requested",
+            "blog_requested",
+        }
+        should_auto_refresh = bool(
+            active_job and active_job.get("status") in auto_refresh_statuses
+        )
 
         return render_template(
             "dashboard.html",
             show_login=False,
             jobs=jobs,
             summary_ready_count=summary_ready_count,
-            blog_ready_count=blog_ready_count
+            blog_ready_count=blog_ready_count,
+            active_job=active_job,
+            active_progress=active_progress,
+            should_auto_refresh=should_auto_refresh
         )
 
     @app.route("/logout")

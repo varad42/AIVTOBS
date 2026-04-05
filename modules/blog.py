@@ -170,7 +170,7 @@ def generate_blog_for_job(job_id):
         }
     )
 
-    return redirect(f"/processing/{job_id}")
+    return redirect(f"/dashboard?job_id={job_id}")
 
 
 @blog_bp.route("/download_blog/<job_id>")

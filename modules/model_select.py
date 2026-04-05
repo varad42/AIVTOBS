@@ -182,7 +182,7 @@ def select_model(job_id):
             }
         )
 
-        return redirect(f"/processing/{job_id}")
+        return redirect(f"/dashboard?job_id={job_id}")
 
     return render_template(
         "select_model.html",

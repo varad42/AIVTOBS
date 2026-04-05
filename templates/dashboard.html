@@ -3,6 +3,9 @@
 {% block title %}Dashboard | AI Video Studio{% endblock %}
 
 {% block content %}
+{% if should_auto_refresh %}
+<meta http-equiv="refresh" content="3">
+{% endif %}
 <div class="dashboard-stage">
 <section class="dashboard-shell {% if show_login %}login-locked{% endif %}">
     <aside class="dashboard-sidebar panel" id="dashboardSidebar">
@@ -35,7 +38,7 @@
                     <span>Blog: {% if job.get("blog_file") %}Generated{% else %}Pending{% endif %}</span>
                 </div>
                 <div class="history-mini-actions">
-                    <a href="/processing/{{ job.job_id }}" class="mini-link">Status</a>
+                    <a href="/dashboard?job_id={{ job.job_id }}" class="mini-link">Status</a>
                     {% if job.get("summary_file") %}
                     <a href="/summary/{{ job.job_id }}" class="mini-link">Summary</a>
                     {% endif %}
@@ -63,7 +66,7 @@
             <div class="section-header">
                 <div>
                     <h2 class="section-title">Upload Video</h2>
-                    <p class="section-subtitle">Add a local video or a YouTube URL, then continue to processing with Faster-Whisper transcription.</p>
+                    <p class="section-subtitle">Add a local video or a YouTube URL to start Faster-Whisper transcription and track progress right here.</p>
                 </div>
             </div>
 
@@ -84,6 +87,64 @@
                     <button type="submit" class="btn-primary" id="dashboardUploadButton">Process video</button>
                 </div>
             </form>
+
+            {% if active_job %}
+            <div style="margin-top: 24px;">
+                <div class="section-header">
+                    <div>
+                        <p class="auth-eyebrow">Live status</p>
+                        <h3 class="card-title" style="margin-bottom: 6px;">Current Processing Job</h3>
+                        <p class="section-subtitle">This job now updates here on the dashboard instead of a separate processing page.</p>
+                    </div>
+                    <span class="status-pill">{{ active_job.status }}</span>
+                </div>
+
+                <div class="metric-list">
+                    <div class="metric">
+                        <span>Job ID</span>
+                        <strong>{{ active_job.job_id }}</strong>
+                    </div>
+                    <div class="metric">
+                        <span>Job Name</span>
+                        <strong>{{ active_job.get("job_slug", active_job.job_id) }}</strong>
+                    </div>
+                    <div class="metric">
+                        <span>Transcription Provider</span>
+                        <strong>{{ active_job.get("transcription_provider", "whisper") }}</strong>
+                    </div>
+                </div>
+
+                <div style="margin-top: 24px;">
+                    <div class="section-header" style="margin-bottom: 12px;">
+                        <h3 class="card-title">Progress</h3>
+                        <span>{{ active_progress }}%</span>
+                    </div>
+                    <div class="pill-progress">
+                        <span style="width: {{ active_progress }}%;"></span>
+                    </div>
+                </div>
+
+                <div class="action-row" style="margin-top: 24px;">
+                    {% if active_job.status == "waiting_for_model" %}
+                    <a class="btn-primary" href="/select_model/{{ active_job.job_id }}">Select Model</a>
+                    {% endif %}
+
+                    {% if active_job.get("summary_file") %}
+                    <a class="btn-secondary" href="/summary/{{ active_job.job_id }}">View Summary</a>
+                    <a class="btn-ghost" href="/download_summary/{{ active_job.job_id }}">Download Summary</a>
+                    {% endif %}
+
+                    {% if active_job.get("summary_file") and not active_job.get("blog_file") and active_job.status != "blog_requested" %}
+                    <a class="btn-secondary" href="/generate_blog/{{ active_job.job_id }}">Generate Blog</a>
+                    {% endif %}
+
+                    {% if active_job.get("blog_file") %}
+                    <a class="btn-secondary" href="/blog/{{ active_job.job_id }}">View Blog</a>
+                    <a class="btn-ghost" href="/download_blog/{{ active_job.job_id }}">Download Blog</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </section>
     </div>
 </section>

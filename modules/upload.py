@@ -113,7 +113,7 @@ def upload():
             if duplicate_job:
                 print(f"Duplicate local upload detected, reusing job {duplicate_job['job_id']}")
                 flash("A recent job for this file already exists. Reusing that job instead of starting a duplicate.", "info")
-                return redirect(f"/processing/{duplicate_job['job_id']}")
+                return redirect(f"/dashboard?job_id={duplicate_job['job_id']}")
 
             placeholder_job = {
                 "job_id": job_id,
@@ -163,7 +163,7 @@ def upload():
             if duplicate_job:
                 print(f"Duplicate YouTube job detected, reusing job {duplicate_job['job_id']}")
                 flash("A recent job for this URL already exists. Reusing that job instead of starting a duplicate.", "info")
-                return redirect(f"/processing/{duplicate_job['job_id']}")
+                return redirect(f"/dashboard?job_id={duplicate_job['job_id']}")
 
         else:
             print("Upload failed: no video file or YouTube URL provided")
@@ -191,5 +191,5 @@ def upload():
             jobs_collection.insert_one(job_data)
             print(f"Job created: {job_id} ({job_slug})")
 
-        return redirect(f"/processing/{job_id}")
+        return redirect(f"/dashboard?job_id={job_id}")
     return redirect("/dashboard")
