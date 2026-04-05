@@ -8,13 +8,21 @@
 {% endif %}
 <div class="dashboard-stage">
 <section class="dashboard-shell {% if show_login %}login-locked{% endif %}">
+    <button
+        type="button"
+        class="dashboard-menu-toggle"
+        id="dashboardMenuToggle"
+        aria-controls="dashboardSidebar"
+        aria-expanded="false"
+        aria-label="Toggle history sidebar"
+    >
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
     <aside class="dashboard-sidebar panel" id="dashboardSidebar">
         <div class="sidebar-header">
-            <div class="sidebar-handle" aria-hidden="true">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
             <h2 class="card-title">History</h2>
         </div>
 
@@ -122,13 +130,79 @@
 </section>
 
 <script>
+    const dashboardShell = document.querySelector(".dashboard-shell");
+    const dashboardSidebar = document.getElementById("dashboardSidebar");
+    const dashboardMenuToggle = document.getElementById("dashboardMenuToggle");
     const dashboardUploadForm = document.getElementById("dashboardUploadForm");
     const dashboardUploadButton = document.getElementById("dashboardUploadButton");
+
+    if (dashboardShell && dashboardSidebar && dashboardMenuToggle) {
+        const syncSidebarState = function () {
+            const isOpen = dashboardShell.classList.contains("sidebar-open");
+            dashboardMenuToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        };
+
+        dashboardMenuToggle.addEventListener("click", function () {
+            dashboardShell.classList.toggle("sidebar-open");
+            syncSidebarState();
+        });
+
+        syncSidebarState();
+    }
 
     if (dashboardUploadForm && dashboardUploadButton) {
         dashboardUploadForm.addEventListener("submit", function () {
             dashboardUploadButton.disabled = true;
             dashboardUploadButton.textContent = "Starting...";
+        });
+    }
+
+    const loginBallVideo = document.getElementById("loginBallSource");
+    const loginBallCanvas = document.getElementById("loginBallCanvas");
+
+    if (loginBallVideo && loginBallCanvas) {
+        const context = loginBallCanvas.getContext("2d", { willReadFrequently: true });
+
+        const drawBallFrame = function () {
+            if (!context || loginBallVideo.readyState < 2) {
+                requestAnimationFrame(drawBallFrame);
+                return;
+            }
+
+            const width = loginBallVideo.videoWidth || 320;
+            const height = loginBallVideo.videoHeight || 320;
+
+            if (loginBallCanvas.width !== width || loginBallCanvas.height !== height) {
+                loginBallCanvas.width = width;
+                loginBallCanvas.height = height;
+            }
+
+            context.clearRect(0, 0, width, height);
+            context.drawImage(loginBallVideo, 0, 0, width, height);
+
+            const frame = context.getImageData(0, 0, width, height);
+            const pixels = frame.data;
+
+            for (let index = 0; index < pixels.length; index += 4) {
+                const red = pixels[index];
+                const green = pixels[index + 1];
+                const blue = pixels[index + 2];
+                const alpha = pixels[index + 3];
+                const brightness = red + green + blue;
+
+                if (brightness < 70) {
+                    pixels[index + 3] = 0;
+                } else if (brightness < 130) {
+                    pixels[index + 3] = Math.round(alpha * 0.45);
+                }
+            }
+
+            context.putImageData(frame, 0, 0);
+            requestAnimationFrame(drawBallFrame);
+        };
+
+        loginBallVideo.addEventListener("play", function () {
+            requestAnimationFrame(drawBallFrame);
         });
     }
 </script>
@@ -175,6 +249,21 @@
                 <a href="/register" class="ghost-link">Sign up</a>
             </div>
         </section>
+
+        <div class="login-ball-wrap" aria-hidden="true">
+            <video
+                class="login-ball-source"
+                id="loginBallSource"
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="auto"
+            >
+                <source src="{{ url_for('static', filename='media/login-ball.mp4') }}" type="video/mp4">
+            </video>
+            <canvas class="login-ball-canvas" id="loginBallCanvas"></canvas>
+        </div>
     </div>
 </div>
 {% endif %}
