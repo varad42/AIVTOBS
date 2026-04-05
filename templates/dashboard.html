@@ -79,10 +79,6 @@
                         <span>Job Name</span>
                         <strong>{{ active_job.get("job_slug", active_job.job_id) }}</strong>
                     </div>
-                    <div class="metric">
-                        <span>Transcription Provider</span>
-                        <strong>{{ active_job.get("transcription_provider", "whisper") }}</strong>
-                    </div>
                 </div>
 
                 <div style="margin-top: 24px;">
@@ -135,10 +131,6 @@
 {% if show_login %}
 <div class="login-overlay">
     <div class="login-overlay-inner">
-        <div style="width: min(100%, 440px); text-align: center; margin-bottom: 18px;">
-            <h1 style="margin: 0; font-family: 'Montserrat', sans-serif; font-size: clamp(1.3rem, 3vw, 1.8rem); letter-spacing: 0.04em;">AI Video To Blog Summarizer</h1>
-        </div>
-
         <section class="auth-card">
             <h1 class="auth-title">User Login</h1>
 
