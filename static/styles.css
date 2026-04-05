@@ -1,27 +1,27 @@
 :root {
     color-scheme: dark;
-    --bg-start: #04142f;
-    --bg-end: #071936;
-    --bg-accent: rgba(6, 20, 49, 0.66);
-    --panel-glass: rgba(255, 255, 255, 0.74);
-    --panel-soft: rgba(247, 250, 252, 0.88);
-    --panel-dark: rgba(5, 8, 25, 0.96);
-    --line-soft: rgba(19, 34, 56, 0.08);
-    --line-dark: rgba(100, 109, 145, 0.14);
-    --text-main: #f5f8ff;
-    --text-dark: #132238;
-    --text-muted: #56708b;
-    --text-muted-strong: #8992ad;
-    --accent-cyan: #31c3eb;
-    --accent-teal: #0d6a78;
-    --accent-blue: #144b86;
-    --accent-purple: #6b6af2;
-    --accent-orange: #f39f5a;
-    --success: #7be0a8;
-    --warning: #f5cf73;
-    --error: #ff9d97;
-    --shadow-soft: 0 18px 50px rgba(31, 44, 71, 0.12);
-    --shadow-deep: 0 30px 80px rgba(0, 0, 0, 0.42);
+    --bg-start: #03101f;
+    --bg-end: #0a1831;
+    --bg-accent: rgba(18, 52, 108, 0.34);
+    --panel-glass: linear-gradient(180deg, rgba(20, 35, 67, 0.82), rgba(9, 20, 40, 0.92));
+    --panel-soft: linear-gradient(180deg, rgba(26, 44, 82, 0.9), rgba(13, 25, 49, 0.94));
+    --panel-dark: rgba(7, 16, 34, 0.96);
+    --line-soft: rgba(155, 190, 255, 0.12);
+    --line-dark: rgba(155, 190, 255, 0.16);
+    --text-main: #eef4ff;
+    --text-dark: #e8f1ff;
+    --text-muted: #91a7cc;
+    --text-muted-strong: #b7c8e6;
+    --accent-cyan: #69d8ff;
+    --accent-teal: #1aa6c8;
+    --accent-blue: #2a66d9;
+    --accent-purple: #6f7cff;
+    --accent-orange: #ffb36b;
+    --success: #7be0c4;
+    --warning: #ffd27d;
+    --error: #ff9eab;
+    --shadow-soft: 0 22px 50px rgba(0, 7, 20, 0.34);
+    --shadow-deep: 0 34px 90px rgba(0, 0, 0, 0.5);
     --radius-xl: 32px;
     --radius-lg: 28px;
     --radius-md: 24px;
@@ -47,8 +47,8 @@ body {
     color: var(--text-main);
     background:
         radial-gradient(circle at 50% 50%, var(--bg-accent), transparent 18%),
-        radial-gradient(circle at 12% 100%, rgba(13, 106, 120, 0.14), transparent 24%),
-        radial-gradient(circle at 100% 0, rgba(20, 75, 134, 0.12), transparent 28%),
+        radial-gradient(circle at 10% 100%, rgba(30, 89, 188, 0.16), transparent 24%),
+        radial-gradient(circle at 100% 0, rgba(73, 132, 255, 0.12), transparent 28%),
         linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
 }
 
@@ -68,7 +68,7 @@ body::before {
     height: 320px;
     top: -90px;
     right: -100px;
-    background: rgba(49, 195, 235, 0.12);
+    background: rgba(97, 176, 255, 0.14);
 }
 
 body::after {
@@ -76,7 +76,7 @@ body::after {
     height: 380px;
     left: -130px;
     bottom: -140px;
-    background: rgba(243, 159, 90, 0.1);
+    background: rgba(32, 98, 202, 0.14);
 }
 
 img,
@@ -139,7 +139,7 @@ select {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+    background: linear-gradient(135deg, #13366a, #348dff);
     color: #fff;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
@@ -192,8 +192,8 @@ select {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(14, 27, 53, 0.76);
+    border: 1px solid rgba(144, 183, 255, 0.12);
     backdrop-filter: blur(12px);
 }
 
@@ -297,9 +297,9 @@ select {
     min-height: 68px;
     padding-right: 14px;
     border-radius: 20px;
-    background: #161c31;
-    border: 1px solid rgba(133, 144, 180, 0.1);
-    color: #c2c8dd;
+    background: linear-gradient(180deg, rgba(21, 36, 68, 0.95), rgba(10, 20, 39, 0.98));
+    border: 1px solid rgba(144, 183, 255, 0.12);
+    color: #d7e5ff;
 }
 
 .pill-field.trailing-icon {
@@ -315,8 +315,8 @@ select {
     place-items: center;
     margin: 0 auto;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.08);
-    color: #dde6ff;
+    background: rgba(110, 160, 255, 0.14);
+    color: #eef4ff;
 }
 
 .field-icon svg {
@@ -340,7 +340,7 @@ select {
 .pill-field input::placeholder,
 .surface-input::placeholder,
 .surface-textarea::placeholder {
-    color: #6f7690;
+    color: #7f96bc;
 }
 
 .pill-field input:focus,
@@ -372,22 +372,23 @@ select {
 }
 
 .btn-primary {
-    color: #09152f;
-    background: linear-gradient(90deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+    color: #f7fbff;
+    background: linear-gradient(135deg, #1d65d6 0%, #4ab5ff 52%, #7f89ff 100%);
+    box-shadow: 0 16px 30px rgba(41, 110, 222, 0.34);
 }
 
 .btn-secondary {
-    color: #163451;
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(19, 34, 56, 0.08);
+    color: var(--text-main);
+    background: linear-gradient(180deg, rgba(22, 38, 72, 0.88), rgba(11, 21, 40, 0.94));
+    border: 1px solid rgba(144, 183, 255, 0.14);
 }
 
 .btn-ghost,
 .chip-button,
 .mini-link {
     color: var(--text-main);
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(24, 44, 82, 0.5);
+    border: 1px solid rgba(144, 183, 255, 0.14);
 }
 
 .btn-primary:hover,
@@ -420,7 +421,7 @@ select {
 
 .ghost-link,
 .inline-link {
-    color: var(--accent-cyan);
+    color: #8ad7ff;
     font-weight: 700;
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -445,13 +446,13 @@ select {
 .dashboard-stage .empty-state,
 .dashboard-stage .status-pill {
     color: #eef4ff;
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(144, 183, 255, 0.14);
     background:
-        linear-gradient(180deg, rgba(28, 31, 39, 0.88), rgba(10, 12, 18, 0.94));
+        linear-gradient(180deg, rgba(22, 38, 72, 0.88), rgba(8, 18, 37, 0.95));
     box-shadow:
-        0 24px 52px rgba(0, 0, 0, 0.38),
-        inset 0 1px 0 rgba(255, 255, 255, 0.14),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+        0 26px 56px rgba(0, 6, 18, 0.42),
+        inset 0 1px 0 rgba(190, 219, 255, 0.16),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .dashboard-stage .sidebar-header h2,
@@ -473,7 +474,7 @@ select {
 .dashboard-stage .metric span,
 .dashboard-stage .history-mini-meta span,
 .dashboard-stage .auth-eyebrow {
-    color: rgba(226, 232, 245, 0.72);
+    color: rgba(210, 224, 248, 0.72);
 }
 
 .dashboard-stage::before,
@@ -491,7 +492,7 @@ select {
     right: 8%;
     width: 320px;
     height: 320px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.02) 58%, transparent 76%);
+    background: radial-gradient(circle, rgba(123, 182, 255, 0.18) 0%, rgba(123, 182, 255, 0.02) 58%, transparent 76%);
 }
 
 .dashboard-stage::after {
@@ -499,7 +500,7 @@ select {
     bottom: 24px;
     width: 260px;
     height: 260px;
-    background: radial-gradient(circle, rgba(95, 111, 255, 0.14) 0%, rgba(95, 111, 255, 0.03) 56%, transparent 76%);
+    background: radial-gradient(circle, rgba(70, 128, 255, 0.16) 0%, rgba(70, 128, 255, 0.03) 56%, transparent 76%);
 }
 
 .dashboard-shell {
@@ -544,7 +545,7 @@ select {
     inset: 1px 1px auto 1px;
     height: 42%;
     border-radius: inherit;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06) 48%, rgba(255, 255, 255, 0) 100%);
+    background: linear-gradient(180deg, rgba(196, 223, 255, 0.18), rgba(196, 223, 255, 0.05) 48%, rgba(255, 255, 255, 0) 100%);
     pointer-events: none;
 }
 
@@ -555,8 +556,8 @@ select {
     inset: 0;
     pointer-events: none;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 34%),
-        linear-gradient(315deg, rgba(90, 104, 255, 0.08), transparent 38%);
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 34%),
+        linear-gradient(315deg, rgba(85, 154, 255, 0.1), transparent 38%);
     mix-blend-mode: screen;
 }
 
@@ -595,7 +596,7 @@ select {
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(19, 34, 56, 0.12);
+    background: rgba(124, 162, 226, 0.22);
     border-radius: var(--radius-pill);
 }
 
@@ -608,7 +609,7 @@ select {
 .status-pill,
 .tag {
     border: 1px solid var(--line-soft);
-    background: rgba(245, 248, 251, 0.88);
+    background: var(--panel-soft);
 }
 
 .sidebar-link {
@@ -713,9 +714,9 @@ select {
     background: var(--panel-glass);
     border: 1px solid var(--line-soft);
     box-shadow:
-        0 24px 52px rgba(10, 18, 37, 0.16),
-        inset 0 1px 0 rgba(255, 255, 255, 0.64),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+        0 24px 52px rgba(0, 8, 22, 0.32),
+        inset 0 1px 0 rgba(196, 223, 255, 0.18),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(18px);
 }
 
@@ -740,7 +741,7 @@ select {
     flex-direction: column;
     justify-content: space-between;
     color: #fff;
-    background: linear-gradient(135deg, rgba(16, 49, 86, 0.94), rgba(13, 106, 120, 0.88));
+    background: linear-gradient(135deg, rgba(18, 44, 93, 0.96), rgba(16, 87, 154, 0.9));
 }
 
 .hero-title {
@@ -780,12 +781,12 @@ select {
     min-height: 56px;
     padding: 0 16px;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(144, 183, 255, 0.12);
     background:
-        linear-gradient(180deg, rgba(28, 31, 40, 0.96), rgba(9, 11, 17, 0.98));
+        linear-gradient(180deg, rgba(17, 33, 64, 0.96), rgba(8, 18, 37, 0.98));
     color: var(--text-main);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 1px 0 rgba(196, 223, 255, 0.08),
         inset 0 -10px 18px rgba(0, 0, 0, 0.24);
 }
 
@@ -818,11 +819,11 @@ select {
     min-width: 0;
     padding: 16px 18px;
     border-radius: 20px;
-    color: var(--text-dark);
+    color: var(--text-main);
     overflow: hidden;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.56),
-        0 12px 24px rgba(17, 30, 51, 0.08);
+        inset 0 1px 0 rgba(196, 223, 255, 0.12),
+        0 12px 24px rgba(0, 9, 24, 0.24);
 }
 
 .choice-card input {
@@ -843,21 +844,21 @@ select {
     width: 100%;
     height: 10px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(132, 169, 232, 0.12);
     overflow: hidden;
     box-shadow:
-        inset 0 1px 2px rgba(255, 255, 255, 0.18),
-        inset 0 -2px 6px rgba(0, 0, 0, 0.3);
+        inset 0 1px 2px rgba(196, 223, 255, 0.16),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.34);
 }
 
 .pill-progress > span {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #0f1118, #2d3448 35%, #5c6688 68%, #f4f7ff 100%);
+    background: linear-gradient(90deg, #16386a, #2f60b7 38%, #55a6ff 72%, #dff3ff 100%);
     position: relative;
     overflow: hidden;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(229, 243, 255, 0.22);
 }
 
 .pill-progress > span::after {
@@ -906,7 +907,7 @@ select {
 .text-content {
     white-space: pre-wrap;
     line-height: 1.75;
-    color: #21374f;
+    color: #dce8ff;
 }
 
 .media-preview {
@@ -942,7 +943,7 @@ th {
 }
 
 td {
-    color: var(--text-dark);
+    color: var(--text-main);
 }
 
 .status-pill,
