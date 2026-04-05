@@ -477,16 +477,7 @@ select {
 .dashboard-shell {
     position: relative;
     z-index: 1;
-    display: grid;
-    grid-template-columns: 64px minmax(0, 1fr);
-    gap: 20px;
-    align-items: start;
-    transition: grid-template-columns 220ms ease;
-}
-
-.dashboard-shell:has(.dashboard-sidebar:hover),
-.dashboard-shell:has(.dashboard-sidebar:focus-within) {
-    grid-template-columns: 280px minmax(0, 1fr);
+    display: block;
 }
 
 .dashboard-shell.login-locked {
@@ -496,22 +487,58 @@ select {
 }
 
 .dashboard-sidebar {
-    position: sticky;
+    position: fixed;
     top: 20px;
-    min-height: auto;
+    left: 20px;
+    height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 16px 12px;
-    width: 64px;
+    padding: 24px 18px 18px;
+    width: min(320px, calc(100vw - 40px));
+    max-width: 320px;
     border-radius: var(--radius-lg);
     backdrop-filter: blur(18px);
     overflow: hidden;
-    transition: box-shadow 220ms ease;
+    transform: translateX(calc(-100% - 24px));
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 220ms ease, opacity 220ms ease, box-shadow 220ms ease;
+    z-index: 4;
 }
 
-.dashboard-sidebar:hover {
+.dashboard-shell.sidebar-open .dashboard-sidebar {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
     box-shadow: 0 20px 40px rgba(77, 112, 176, 0.16);
+}
+
+.sidebar-toggle-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 5;
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 1px solid rgba(102, 145, 220, 0.14);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 12px 24px rgba(77, 112, 176, 0.14);
+    cursor: pointer;
+}
+
+.sidebar-toggle-button span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--text-dark);
 }
 
 .sidebar-header,
@@ -535,21 +562,7 @@ select {
 
 .sidebar-header {
     min-height: 56px;
-    justify-content: center;
-}
-
-.sidebar-handle {
-    display: grid;
-    gap: 5px;
-    width: 24px;
-}
-
-.sidebar-handle span {
-    display: block;
-    width: 24px;
-    height: 2px;
-    border-radius: 999px;
-    background: var(--text-dark);
+    justify-content: flex-start;
 }
 
 .sidebar-scroll {
@@ -641,24 +654,9 @@ select {
 .dashboard-sidebar .card-title,
 .dashboard-sidebar .history-mini-card h3,
 .dashboard-sidebar .history-mini-actions {
-    opacity: 0;
-    transform: translateX(-10px);
-    transition: opacity 160ms ease, transform 160ms ease;
-}
-
-.dashboard-sidebar:hover .sidebar-header {
-    justify-content: flex-start;
-}
-
-.dashboard-sidebar:hover .sidebar-handle {
-    display: none;
-}
-
-.dashboard-sidebar:hover .card-title,
-.dashboard-sidebar:hover .history-mini-card h3,
-.dashboard-sidebar:hover .history-mini-actions {
     opacity: 1;
     transform: translateX(0);
+    transition: opacity 160ms ease, transform 160ms ease;
 }
 
 .account-card {
@@ -673,6 +671,7 @@ select {
 .workspace-stack {
     display: grid;
     gap: 20px;
+    min-width: 0;
 }
 
 .dashboard-logout {
@@ -988,9 +987,6 @@ td {
 }
 
 @media (max-width: 1180px) {
-    .dashboard-shell {
-        grid-template-columns: 64px minmax(0, 1fr);
-    }
 }
 
 @media (max-width: 1080px) {
@@ -1002,39 +998,19 @@ td {
     }
 
     .dashboard-sidebar {
-        position: relative;
-        top: 0;
-        min-height: auto;
-        width: 100%;
-        padding: 18px;
-    }
-
-    .dashboard-shell {
-        padding-left: 0;
-    }
-
-    .dashboard-sidebar .card-title,
-    .dashboard-sidebar .history-mini-card h3,
-    .dashboard-sidebar .history-mini-actions {
-        opacity: 1;
-        transform: translateX(0);
+        left: 12px;
+        top: 12px;
+        height: calc(100vh - 24px);
+        width: min(320px, calc(100vw - 24px));
     }
 
     .sidebar-header {
         justify-content: flex-start;
     }
 
-    .dashboard-sidebar:hover {
-        width: 100%;
-    }
-
-    .dashboard-shell:has(.dashboard-sidebar:hover),
-    .dashboard-shell:has(.dashboard-sidebar:focus-within) {
-        grid-template-columns: 1fr;
-    }
-
-    .sidebar-handle {
-        display: none;
+    .sidebar-toggle-button {
+        top: 12px;
+        left: 12px;
     }
 }
 
@@ -1053,17 +1029,6 @@ td {
     .tag-row {
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .dashboard-sidebar {
-        max-height: 96px;
-        overflow: hidden;
-        transition: max-height 0.25s ease;
-    }
-
-    .dashboard-sidebar:hover,
-    .dashboard-sidebar:focus-within {
-        max-height: 75vh;
     }
 
     .metric-list {
