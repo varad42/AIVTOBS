@@ -10,8 +10,7 @@
 <section class="dashboard-shell {% if show_login %}login-locked{% endif %}">
     <aside class="dashboard-sidebar panel" id="dashboardSidebar">
         <div class="sidebar-header">
-            <h2 class="card-title">Sessions</h2>
-            <button type="button" class="btn-ghost sidebar-toggle" id="sidebarToggle">Slide In</button>
+            <h2 class="card-title">History</h2>
         </div>
 
         <div class="sidebar-section sidebar-scroll">
@@ -122,15 +121,6 @@
 </section>
 
 <script>
-    const sidebar = document.getElementById("dashboardSidebar");
-    const toggle = document.getElementById("sidebarToggle");
-    if (sidebar && toggle) {
-        toggle.addEventListener("click", function () {
-            sidebar.classList.toggle("is-open");
-            toggle.textContent = sidebar.classList.contains("is-open") ? "Hide" : "Slide In";
-        });
-    }
-
     const dashboardUploadForm = document.getElementById("dashboardUploadForm");
     const dashboardUploadButton = document.getElementById("dashboardUploadButton");
 

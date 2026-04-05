@@ -507,7 +507,7 @@ select {
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: 84px minmax(0, 1fr);
     gap: 20px;
     align-items: start;
 }
@@ -526,9 +526,19 @@ select {
     flex-direction: column;
     gap: 14px;
     padding: 18px;
+    width: 84px;
     border-radius: var(--radius-lg);
     backdrop-filter: blur(18px);
     overflow: hidden;
+    transition: width 220ms ease, box-shadow 220ms ease;
+}
+
+.dashboard-sidebar:hover {
+    width: 220px;
+    box-shadow:
+        0 28px 58px rgba(0, 8, 22, 0.36),
+        inset 0 1px 0 rgba(196, 223, 255, 0.2),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .dashboard-sidebar::before,
@@ -561,10 +571,6 @@ select {
     mix-blend-mode: screen;
 }
 
-.sidebar-toggle {
-    display: none;
-}
-
 .sidebar-header,
 .section-header,
 .topbar,
@@ -584,11 +590,16 @@ select {
     gap: 16px;
 }
 
+.sidebar-header {
+    min-height: 56px;
+    justify-content: center;
+}
+
 .sidebar-scroll {
     min-height: 0;
     flex: 1;
     overflow: auto;
-    padding-right: 4px;
+    padding-right: 2px;
 }
 
 .sidebar-scroll::-webkit-scrollbar {
@@ -629,7 +640,7 @@ select {
     display: grid;
     gap: 10px;
     min-width: 0;
-    padding: 14px;
+    padding: 14px 12px;
     border-radius: 18px;
     overflow: hidden;
 }
@@ -668,6 +679,40 @@ select {
 .tag-row {
     flex-wrap: wrap;
     gap: 12px;
+}
+
+.dashboard-sidebar .card-title,
+.dashboard-sidebar .history-mini-card h3,
+.dashboard-sidebar .history-mini-actions {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.dashboard-sidebar .sidebar-header::before {
+    content: "History";
+    font-family: "Montserrat", "Segoe UI", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-dark);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+}
+
+.dashboard-sidebar:hover .sidebar-header {
+    justify-content: flex-start;
+}
+
+.dashboard-sidebar:hover .sidebar-header::before {
+    display: none;
+}
+
+.dashboard-sidebar:hover .card-title,
+.dashboard-sidebar:hover .history-mini-card h3,
+.dashboard-sidebar:hover .history-mini-actions {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .account-card {
@@ -1029,6 +1074,26 @@ td {
         position: relative;
         top: 0;
         min-height: auto;
+        width: 100%;
+    }
+
+    .dashboard-sidebar:hover {
+        width: 100%;
+    }
+
+    .dashboard-sidebar .sidebar-header::before {
+        display: none;
+    }
+
+    .dashboard-sidebar .card-title,
+    .dashboard-sidebar .history-mini-card h3,
+    .dashboard-sidebar .history-mini-actions {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .sidebar-header {
+        justify-content: flex-start;
     }
 }
 
@@ -1049,17 +1114,14 @@ td {
         align-items: stretch;
     }
 
-    .sidebar-toggle {
-        display: inline-flex;
-    }
-
     .dashboard-sidebar {
-        max-height: 88px;
+        max-height: 96px;
         overflow: hidden;
         transition: max-height 0.25s ease;
     }
 
-    .dashboard-sidebar.is-open {
+    .dashboard-sidebar:hover,
+    .dashboard-sidebar:focus-within {
         max-height: 75vh;
     }
 
