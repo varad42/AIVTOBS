@@ -20,6 +20,11 @@ def _get_job(job_id):
     return job, None
 
 
+def _get_job_display_name(job):
+
+    return job.get("display_name") or job.get("job_slug") or job.get("job_id")
+
+
 def _read_text_file(path):
     if not path or not exists(path):
         return None
@@ -94,6 +99,7 @@ def view_summary(job_id):
         summary=summary_text,
         timestamp_summary=timestamp_summary_text,
         job_id=job_id,
+        display_name=_get_job_display_name(job),
         model_name=job.get("summary_model", "t5")
     )
 
@@ -143,6 +149,7 @@ def view_blog(job_id):
         "blog.html",
         blog=blog_text,
         job_id=job_id,
+        display_name=_get_job_display_name(job),
         model_name=job.get("summary_model", "t5")
     )
 
