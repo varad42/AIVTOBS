@@ -721,6 +721,13 @@ select {
     line-height: 1.6;
 }
 
+.dashboard-upload-subtitle {
+    font-family: "Montserrat", "Segoe UI", sans-serif;
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
 .surface-label {
     display: grid;
     gap: 8px;
