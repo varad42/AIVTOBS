@@ -229,11 +229,11 @@ select {
 }
 
 .auth-card {
-    width: min(100%, 640px);
+    width: min(100%, 720px);
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 34px 30px 26px;
+    padding: 36px 36px 28px;
     border-radius: 31px;
     background: var(--panel-dark);
     border: 1px solid var(--line-dark);
@@ -933,6 +933,7 @@ td {
     display: grid;
     justify-items: center;
     gap: 18px;
+    width: min(100%, 820px);
 }
 
 .login-ball-wrap {
