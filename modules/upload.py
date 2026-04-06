@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, session, flash
 import os
 import re
+import subprocess
 import time
 import uuid
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 from datetime import datetime, timedelta, timezone
 
 from database.mongo import jobs_collection
@@ -35,6 +36,40 @@ def build_job_slug(video_filename, youtube_url, job_id):
     short_id = job_id.split("-")[0]
 
     return f"{slugify(source_name)}_{timestamp}_{short_id}"
+
+
+def prettify_title(value):
+
+    cleaned_value = re.sub(r"[_\-]+", " ", value or "")
+    cleaned_value = re.sub(r"\s+", " ", cleaned_value).strip()
+    return cleaned_value or "Video"
+
+
+def get_video_title_from_url(video_url):
+
+    if not video_url:
+        return ""
+
+    try:
+        result = subprocess.run(
+            ["yt-dlp", "--print", "%(title)s", "--skip-download", video_url],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=20
+        )
+        title = (result.stdout or "").strip().splitlines()
+        if title:
+            return title[-1].strip()
+    except Exception:
+        pass
+
+    parsed_url = urlparse(video_url)
+    path_name = os.path.basename(unquote(parsed_url.path.rstrip("/")))
+    if path_name:
+        return prettify_title(os.path.splitext(path_name)[0])
+
+    return prettify_title(parsed_url.netloc.replace("www.", ""))
 
 
 def is_youtube_url(url):
@@ -91,6 +126,11 @@ def upload():
         video = request.files.get("video")
         youtube_url = (request.form.get("video_url") or request.form.get("youtube") or "").strip()
         job_id = str(uuid.uuid4())
+        display_name = (
+            prettify_title(os.path.splitext(video.filename)[0])
+            if video and video.filename
+            else get_video_title_from_url(youtube_url)
+        )
         job_slug = build_job_slug(
             video.filename if video else "",
             youtube_url,
@@ -124,6 +164,7 @@ def upload():
             placeholder_job = {
                 "job_id": job_id,
                 "job_slug": job_slug,
+                "display_name": display_name,
                 "user": session["user"],
                 "file": file_path,
                 "source_type": source_type,
@@ -181,6 +222,7 @@ def upload():
 
             "job_id": job_id,
             "job_slug": job_slug,
+            "display_name": display_name,
             "user": session["user"],
             "file": file_path,
             "source_type": source_type,

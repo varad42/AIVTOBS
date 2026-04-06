@@ -35,7 +35,7 @@
     <aside class="stat-panel">
         <div class="stat-block">
             <span class="auth-eyebrow">Current job</span>
-            <strong>{{ job.get("job_slug", job.job_id) }}</strong>
+            <strong>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</strong>
             <p class="card-copy">The model you choose here is stored with the job and shown later on the summary and blog pages.</p>
         </div>
     </aside>

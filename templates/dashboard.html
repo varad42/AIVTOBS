@@ -17,7 +17,7 @@
             {% for job in jobs %}
             <a href="/dashboard?job_id={{ job.job_id }}" class="history-job-link">
             <article class="history-mini-card">
-                <h3>{{ job.get("job_slug", job.file) }}</h3>
+                <h3>{{ job.get("display_name") or job.get("job_slug", job.file) }}</h3>
                 <p class="card-copy">Open job</p>
             </article>
             </a>
