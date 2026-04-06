@@ -121,6 +121,10 @@ def get_available_transcript_source_options(job):
 @model_bp.route("/select_model/<job_id>", methods=["GET", "POST"])
 def select_model(job_id):
     summary_model_options = get_available_summary_model_options()
+    visible_summary_model_options = [
+        option for option in summary_model_options
+        if option["value"] != "llama_cpp"
+    ]
     transcript_source_options = []
     enabled_models = {
         option["value"]
@@ -187,6 +191,6 @@ def select_model(job_id):
     return render_template(
         "select_model.html",
         job=job,
-        summary_model_options=summary_model_options,
+        summary_model_options=visible_summary_model_options,
         transcript_source_options=transcript_source_options
     )
