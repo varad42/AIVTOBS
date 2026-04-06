@@ -37,6 +37,12 @@ def build_job_slug(video_filename, youtube_url, job_id):
     return f"{slugify(source_name)}_{timestamp}_{short_id}"
 
 
+def is_youtube_url(url):
+
+    hostname = urlparse(url).netloc.lower()
+    return "youtube.com" in hostname or "youtu.be" in hostname
+
+
 def find_recent_duplicate_job(user, source_type, source_identifier):
 
     if not source_identifier:
@@ -83,7 +89,7 @@ def upload():
     if request.method == "POST":
 
         video = request.files.get("video")
-        youtube_url = request.form.get("youtube")
+        youtube_url = (request.form.get("video_url") or request.form.get("youtube") or "").strip()
         job_id = str(uuid.uuid4())
         job_slug = build_job_slug(
             video.filename if video else "",
@@ -149,7 +155,8 @@ def upload():
             print(f"Local upload completed and queued: {job_id}")
 
         elif youtube_url:
-            print(f"YouTube URL received: {youtube_url}")
+            source_type = "youtube" if is_youtube_url(youtube_url) else "external_url"
+            print(f"Video URL received: {youtube_url} ({source_type})")
 
             file_path = youtube_url
             source_identifier = file_path
@@ -161,13 +168,13 @@ def upload():
             )
 
             if duplicate_job:
-                print(f"Duplicate YouTube job detected, reusing job {duplicate_job['job_id']}")
+                print(f"Duplicate URL job detected, reusing job {duplicate_job['job_id']}")
                 flash("A recent job for this URL already exists. Reusing that job instead of starting a duplicate.", "info")
                 return redirect(f"/dashboard?job_id={duplicate_job['job_id']}")
 
         else:
-            print("Upload failed: no video file or YouTube URL provided")
-            flash("Add a video file or YouTube URL before starting processing.", "error")
+            print("Upload failed: no video file or video URL provided")
+            flash("Add a video file or video URL before starting processing.", "error")
             return redirect("/dashboard")
 
         job_data = {
@@ -187,7 +194,7 @@ def upload():
 
         }
 
-        if source_type == "youtube":
+        if source_type != "local":
             jobs_collection.insert_one(job_data)
             print(f"Job created: {job_id} ({job_slug})")
 

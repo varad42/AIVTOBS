@@ -9,6 +9,7 @@ import tempfile
 import shutil
 import wave
 import torch
+import mimetypes
 from xml.etree.ElementTree import ParseError
 from urllib.parse import parse_qs, urlparse
 
@@ -115,6 +116,23 @@ def extract_youtube_video_id(url):
     return None
 
 
+def guess_remote_video_extension(url, content_type=None):
+
+    parsed_url = urlparse(url)
+    path_extension = os.path.splitext(parsed_url.path)[1].lower()
+
+    if path_extension:
+        return path_extension
+
+    if content_type:
+        normalized_content_type = content_type.split(";", 1)[0].strip().lower()
+        guessed_extension = mimetypes.guess_extension(normalized_content_type)
+        if guessed_extension:
+            return guessed_extension
+
+    return ".mp4"
+
+
 def fetch_youtube_transcript(video_url):
 
     video_id = extract_youtube_video_id(video_url)
@@ -167,6 +185,33 @@ def fetch_youtube_transcript(video_url):
         raise RuntimeError("YouTube transcript text was empty after normalization.")
 
     return transcript_text, normalized_segments
+
+
+def download_remote_video(url, output_base_path):
+
+    print(f"Downloading remote video from {url}")
+    response = requests.get(
+        url,
+        stream=True,
+        timeout=(15, 300),
+        headers={"User-Agent": "Mozilla/5.0"}
+    )
+    response.raise_for_status()
+
+    content_type = response.headers.get("Content-Type", "")
+    if content_type.lower().startswith("text/html"):
+        raise RuntimeError(
+            "The URL returned an HTML page instead of a direct video file."
+        )
+
+    output_path = output_base_path + guess_remote_video_extension(url, content_type)
+
+    with open(output_path, "wb") as file_handle:
+        for chunk in response.iter_content(chunk_size=1024 * 1024):
+            if chunk:
+                file_handle.write(chunk)
+
+    return output_path
 
 
 def download_youtube(url, output):
@@ -601,89 +646,114 @@ def process_job(job):
             local_transcript_path = os.path.join(work_dir, f"{job_file_stem}.txt")
 
             if file_path.startswith("http"):
-                print(f"Job {job_id} is a YouTube URL")
+                youtube_video_id = extract_youtube_video_id(file_path)
+
+                if youtube_video_id:
+                    print(f"Job {job_id} is a YouTube URL")
+                else:
+                    print(f"Job {job_id} is an external video URL")
 
                 jobs_collection.update_one(
                     {"job_id": job_id},
                     {"$set": {"status": "downloading"}}
                 )
 
-                transcript_started_at = time.perf_counter()
+                if youtube_video_id:
+                    transcript_started_at = time.perf_counter()
 
-                try:
-                    print(f"Trying YouTube transcript fetch first for job {job_id}")
-                    transcript_text, transcript_segments = fetch_youtube_transcript(file_path)
-                    upload_text(transcript_path, transcript_text)
-                    upload_json(segments_path, transcript_segments)
-                    transcription_seconds = time.perf_counter() - transcript_started_at
+                    try:
+                        print(f"Trying YouTube transcript fetch first for job {job_id}")
+                        transcript_text, transcript_segments = fetch_youtube_transcript(file_path)
+                        upload_text(transcript_path, transcript_text)
+                        upload_json(segments_path, transcript_segments)
+                        transcription_seconds = time.perf_counter() - transcript_started_at
 
-                    jobs_collection.update_one(
-                        {"job_id": job_id},
-                        {
-                            "$set": {
-                                "transcription_seconds": transcription_seconds
+                        jobs_collection.update_one(
+                            {"job_id": job_id},
+                            {
+                                "$set": {
+                                    "transcription_seconds": transcription_seconds
+                                }
                             }
-                        }
-                    )
-
-                    transcript_saved_at = datetime.now(timezone.utc)
-                    uploaded_at = parse_utc_datetime(job.get("uploaded_at"))
-                    upload_to_transcript_seconds = None
-
-                    if uploaded_at:
-                        upload_to_transcript_seconds = (
-                            transcript_saved_at - uploaded_at
-                        ).total_seconds()
-
-                    jobs_collection.update_one(
-                        {"job_id": job_id},
-                        {
-                            "$set": {
-                                "status": "waiting_for_model",
-                                "transcript_file": transcript_path,
-                                "original_transcript_file": transcript_path,
-                                "transcript_segments_file": segments_path,
-                                "transcript_saved_at": transcript_saved_at,
-                                "download_seconds": download_seconds,
-                                "audio_extraction_seconds": None,
-                                "transcription_seconds": transcription_seconds,
-                                "upload_to_transcript_seconds": upload_to_transcript_seconds,
-                                "transcription_provider": "youtube_transcript_api"
-                            }
-                        }
-                    )
-
-                    print(f"YouTube transcript ready for job {job_id}")
-                    print(f"YouTube caption transcript time: {transcription_seconds:.2f} seconds")
-                    if upload_to_transcript_seconds is not None:
-                        print(
-                            f"Time from upload/YouTube URL to transcript saved: "
-                            f"{upload_to_transcript_seconds:.2f} seconds"
                         )
-                    return
-                except (
-                    CouldNotRetrieveTranscript,
-                    IpBlocked,
-                    NoTranscriptFound,
-                    RequestBlocked,
-                    TranscriptsDisabled,
-                    VideoUnavailable,
-                    RuntimeError,
-                ) as error:
-                    print(f"YouTube transcript unavailable for job {job_id}, falling back to Whisper: {error}")
+
+                        transcript_saved_at = datetime.now(timezone.utc)
+                        uploaded_at = parse_utc_datetime(job.get("uploaded_at"))
+                        upload_to_transcript_seconds = None
+
+                        if uploaded_at:
+                            upload_to_transcript_seconds = (
+                                transcript_saved_at - uploaded_at
+                            ).total_seconds()
+
+                        jobs_collection.update_one(
+                            {"job_id": job_id},
+                            {
+                                "$set": {
+                                    "status": "waiting_for_model",
+                                    "transcript_file": transcript_path,
+                                    "original_transcript_file": transcript_path,
+                                    "transcript_segments_file": segments_path,
+                                    "transcript_saved_at": transcript_saved_at,
+                                    "download_seconds": download_seconds,
+                                    "audio_extraction_seconds": None,
+                                    "transcription_seconds": transcription_seconds,
+                                    "upload_to_transcript_seconds": upload_to_transcript_seconds,
+                                    "transcription_provider": "youtube_transcript_api"
+                                }
+                            }
+                        )
+
+                        print(f"YouTube transcript ready for job {job_id}")
+                        print(f"YouTube caption transcript time: {transcription_seconds:.2f} seconds")
+                        if upload_to_transcript_seconds is not None:
+                            print(
+                                f"Time from upload/video URL to transcript saved: "
+                                f"{upload_to_transcript_seconds:.2f} seconds"
+                            )
+                        return
+                    except (
+                        CouldNotRetrieveTranscript,
+                        IpBlocked,
+                        NoTranscriptFound,
+                        RequestBlocked,
+                        TranscriptsDisabled,
+                        VideoUnavailable,
+                        RuntimeError,
+                    ) as error:
+                        print(f"YouTube transcript unavailable for job {job_id}, falling back to Whisper: {error}")
 
                 download_started_at = time.perf_counter()
-                try:
-                    download_youtube(
-                        file_path,
-                        video_path
-                    )
-                except subprocess.CalledProcessError as error:
-                    raise RuntimeError(
-                        "YouTube transcript was unavailable, and the fallback video download was blocked by YouTube. "
-                        "This usually happens because of rate limiting or bot verification. "
-                        "Try again later, use another video, or provide the video file directly."
-                    ) from error
+                download_error = None
+
+                if not youtube_video_id:
+                    try:
+                        video_path = download_remote_video(file_path, video_path)
+                    except (requests.RequestException, RuntimeError) as error:
+                        download_error = error
+                        print(
+                            f"Direct remote download failed for job {job_id}, "
+                            f"trying yt-dlp fallback: {error}"
+                        )
+
+                if youtube_video_id or download_error is not None:
+                    try:
+                        download_youtube(
+                            file_path,
+                            video_path
+                        )
+                    except subprocess.CalledProcessError as error:
+                        if youtube_video_id:
+                            raise RuntimeError(
+                                "YouTube transcript was unavailable, and the fallback video download was blocked by YouTube. "
+                                "This usually happens because of rate limiting or bot verification. "
+                                "Try again later, use another video, or provide the video file directly."
+                            ) from error
+
+                        raise RuntimeError(
+                            "The URL could not be downloaded directly, and yt-dlp could not fetch it either. "
+                            "Use a public direct video file URL or upload the file manually."
+                        ) from error
 
                 download_seconds = time.perf_counter() - download_started_at
                 jobs_collection.update_one(
@@ -695,15 +765,16 @@ def process_job(job):
                     }
                 )
 
-                import glob
+                if youtube_video_id or download_error is not None:
+                    import glob
 
-                files = glob.glob(f"{video_path}.*")
+                    files = glob.glob(f"{video_path}.*")
 
-                for f in files:
-                    if f.endswith(".mp4") or f.endswith(".webm"):
-                        video_path = f
-                        print(f"Downloaded video path resolved to {video_path}")
-                        break
+                    for f in files:
+                        if f.endswith((".mp4", ".webm", ".mkv", ".mov", ".avi", ".m4v")):
+                            video_path = f
+                            print(f"Downloaded video path resolved to {video_path}")
+                            break
 
             else:
                 video_path = download_to_local(file_path, temp_dir=work_dir)
@@ -792,14 +863,14 @@ def process_job(job):
 
             print(f"Transcript ready for job {job_id}")
             if download_seconds is not None:
-                print(f"YouTube download time: {download_seconds:.2f} seconds")
+                print(f"Video download time: {download_seconds:.2f} seconds")
             if audio_extraction_seconds is not None:
                 print(f"Audio extraction time: {audio_extraction_seconds:.2f} seconds")
             if transcription_seconds is not None:
                 print(f"Transcription time: {transcription_seconds:.2f} seconds")
             if upload_to_transcript_seconds is not None:
                 print(
-                    f"Time from upload/YouTube URL to transcript saved: "
+                    f"Time from upload/video URL to transcript saved: "
                     f"{upload_to_transcript_seconds:.2f} seconds"
                 )
 
