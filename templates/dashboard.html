@@ -32,7 +32,7 @@
             <div class="section-header">
                 <div>
                     <h2 class="section-title">Upload Video</h2>
-                    <p class="section-subtitle">Add a local video or a public video URL to start Faster-Whisper transcription and track progress right here.</p>
+                    <p class="section-subtitle">Add a local video or Youtube video URL</p>
                 </div>
                 <a href="/logout" class="btn-secondary dashboard-logout">Logout</a>
             </div>
@@ -47,7 +47,7 @@
 
                 <label class="surface-label">
                     Video URL
-                    <input class="surface-input" name="video_url" placeholder="https://example.com/video.mp4 or https://www.youtube.com/watch?v=...">
+                    <input class="surface-input" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
                 </label>
 
                 <div class="button-row">
@@ -60,7 +60,6 @@
                     <div>
                         <p class="auth-eyebrow">Live status</p>
                         <h3 class="card-title" style="margin-bottom: 6px;">Current Processing Job</h3>
-                        <p class="section-subtitle">This job now updates here on the dashboard instead of a separate processing page.</p>
                     </div>
                     <span class="status-pill">{{ active_status_label }}</span>
                 </div>
