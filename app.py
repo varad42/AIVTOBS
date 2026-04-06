@@ -42,7 +42,11 @@ def create_app():
                 email="",
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0
+                blog_ready_count=0,
+                active_job=None,
+                active_progress=0,
+                active_status_label="Idle",
+                should_auto_refresh=False
             )
 
         jobs = list(
@@ -63,9 +67,6 @@ def create_app():
                 {"user": session["user"], "job_id": active_job_id}
             )
 
-        if active_job is None and jobs:
-            active_job = jobs[0]
-
         progress_map = {
             "uploading": 10,
             "uploaded": 15,
@@ -82,6 +83,7 @@ def create_app():
             active_job.get("status"),
             5
         ) if active_job else 0
+        active_status_label = active_job.get("status") if active_job else "Idle"
         auto_refresh_statuses = {
             "uploading",
             "uploaded",
@@ -104,6 +106,7 @@ def create_app():
             blog_ready_count=blog_ready_count,
             active_job=active_job,
             active_progress=active_progress,
+            active_status_label=active_status_label,
             should_auto_refresh=should_auto_refresh
         )
 

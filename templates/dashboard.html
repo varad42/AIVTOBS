@@ -55,7 +55,6 @@
                 </div>
             </form>
 
-            {% if active_job %}
             <div style="margin-top: 24px;">
                 <div class="section-header">
                     <div>
@@ -63,18 +62,7 @@
                         <h3 class="card-title" style="margin-bottom: 6px;">Current Processing Job</h3>
                         <p class="section-subtitle">This job now updates here on the dashboard instead of a separate processing page.</p>
                     </div>
-                    <span class="status-pill">{{ active_job.status }}</span>
-                </div>
-
-                <div class="metric-list">
-                    <div class="metric">
-                        <span>Job ID</span>
-                        <strong>{{ active_job.job_id }}</strong>
-                    </div>
-                    <div class="metric">
-                        <span>Job Name</span>
-                        <strong>{{ active_job.get("job_slug", active_job.job_id) }}</strong>
-                    </div>
+                    <span class="status-pill">{{ active_status_label }}</span>
                 </div>
 
                 <div style="margin-top: 24px;">
@@ -88,6 +76,11 @@
                 </div>
 
                 <div class="action-row" style="margin-top: 24px;">
+                    {% if not active_job %}
+                    <span class="section-subtitle">No active job selected yet. Start a new upload or open a job from History.</span>
+                    {% endif %}
+
+                    {% if active_job %}
                     {% if active_job.status == "waiting_for_model" %}
                     <a class="btn-primary" href="/select_model/{{ active_job.job_id }}">Select Model</a>
                     {% endif %}
@@ -105,9 +98,9 @@
                     <a class="btn-secondary" href="/blog/{{ active_job.job_id }}">View Blog</a>
                     <a class="btn-ghost" href="/download_blog/{{ active_job.job_id }}">Download Blog</a>
                     {% endif %}
+                    {% endif %}
                 </div>
             </div>
-            {% endif %}
         </section>
     </div>
 </section>

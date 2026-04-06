@@ -24,7 +24,11 @@ def login():
                 email=email,
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0
+                blog_ready_count=0,
+                active_job=None,
+                active_progress=0,
+                active_status_label="Idle",
+                should_auto_refresh=False
             )
 
         if not is_valid_email(email):
@@ -35,7 +39,11 @@ def login():
                 email=email,
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0
+                blog_ready_count=0,
+                active_job=None,
+                active_progress=0,
+                active_status_label="Idle",
+                should_auto_refresh=False
             )
 
         user = users_collection.find_one({"email": email})
@@ -54,7 +62,11 @@ def login():
                 email=email,
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0
+                blog_ready_count=0,
+                active_job=None,
+                active_progress=0,
+                active_status_label="Idle",
+                should_auto_refresh=False
             )
 
         if user.get("auth_provider") == "google" and not stored_password:
@@ -65,7 +77,11 @@ def login():
                 email=email,
                 jobs=[],
                 summary_ready_count=0,
-                blog_ready_count=0
+                blog_ready_count=0,
+                active_job=None,
+                active_progress=0,
+                active_status_label="Idle",
+                should_auto_refresh=False
             )
 
         flash("Incorrect password. Try again or use Forgot password to reset it.", "error")
@@ -75,7 +91,11 @@ def login():
             email=email,
             jobs=[],
             summary_ready_count=0,
-            blog_ready_count=0
+            blog_ready_count=0,
+            active_job=None,
+            active_progress=0,
+            active_status_label="Idle",
+            should_auto_refresh=False
         )
 
     return render_template(
@@ -84,5 +104,9 @@ def login():
         email="",
         jobs=[],
         summary_ready_count=0,
-        blog_ready_count=0
+        blog_ready_count=0,
+        active_job=None,
+        active_progress=0,
+        active_status_label="Idle",
+        should_auto_refresh=False
     )
