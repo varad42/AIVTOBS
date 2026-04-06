@@ -86,7 +86,6 @@
 
                     {% if active_job.get("summary_file") %}
                     <a class="btn-secondary" href="/summary/{{ active_job.job_id }}">View Summary</a>
-                    <a class="btn-ghost" href="/download_summary/{{ active_job.job_id }}">Download Summary</a>
                     {% endif %}
 
                     {% if active_job.get("summary_file") and not active_job.get("blog_file") and active_job.status != "blog_requested" %}
@@ -95,7 +94,6 @@
 
                     {% if active_job.get("blog_file") %}
                     <a class="btn-secondary" href="/blog/{{ active_job.job_id }}">View Blog</a>
-                    <a class="btn-ghost" href="/download_blog/{{ active_job.job_id }}">Download Blog</a>
                     {% endif %}
                     {% endif %}
                 </div>
