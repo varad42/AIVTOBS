@@ -7,7 +7,7 @@
     <div class="content-panel">
         <p class="auth-eyebrow">Model selection</p>
         <h1 class="section-title">Choose a summarization model</h1>
-        <p class="section-subtitle">Pick the model you want for <strong>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</strong>. Once selected, click generate summary.</p>
+        <p class="section-subtitle select-model-subtitle">Pick the model you want for <strong>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</strong>. Once selected, click generate summary.</p>
 
         <form method="POST" class="surface-form">
             <div>
@@ -31,13 +31,5 @@
             </div>
         </form>
     </div>
-
-    <aside class="stat-panel">
-        <div class="stat-block">
-            <span class="auth-eyebrow">Current job</span>
-            <strong>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</strong>
-            <p class="card-copy">The model you choose here is stored with the job and shown later on the summary and blog pages.</p>
-        </div>
-    </aside>
 </section>
 {% endblock %}

@@ -728,6 +728,11 @@ select {
     letter-spacing: 0.01em;
 }
 
+.select-model-subtitle {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
 .surface-label {
     display: grid;
     gap: 8px;
