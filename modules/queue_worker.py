@@ -509,7 +509,8 @@ def claim_next_job(worker_started_at):
     print("Checking for next uploaded job")
     return jobs_collection.find_one_and_update(
         {
-            "status": "uploaded"
+            "status": "uploaded",
+            "queued_at": {"$gte": worker_started_at}
         },
         {
             "$set": {
@@ -904,12 +905,18 @@ def worker_loop():
 
         if not job:
             job = jobs_collection.find_one(
-                {"status": "summarize_requested"}
+                {
+                    "status": "summarize_requested",
+                    "model_selected_at": {"$gte": worker_started_at}
+                }
             )
 
         if not job:
             job = jobs_collection.find_one(
-                {"status": "blog_requested"}
+                {
+                    "status": "blog_requested",
+                    "blog_requested_at": {"$gte": worker_started_at}
+                }
             )
 
         if job:

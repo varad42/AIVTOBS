@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from flask import Blueprint, render_template, send_file, redirect
 import tempfile
 
@@ -172,7 +173,8 @@ def generate_blog_for_job(job_id):
         {"job_id": job_id},
         {
             "$set": {
-                "status": "blog_requested"
+                "status": "blog_requested",
+                "blog_requested_at": datetime.now(timezone.utc)
             }
         }
     )
