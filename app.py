@@ -90,6 +90,7 @@ def create_app():
         progress_map = {
             "uploading": 10,
             "uploaded": 15,
+            "processing": 18,
             "downloading": 20,
             "extracting_audio": 40,
             "transcribing": 60,
@@ -107,6 +108,7 @@ def create_app():
         auto_refresh_statuses = {
             "uploading",
             "uploaded",
+            "processing",
             "downloading",
             "extracting_audio",
             "transcribing",
