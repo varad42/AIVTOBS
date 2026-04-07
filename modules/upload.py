@@ -134,23 +134,30 @@ def supersede_active_jobs(user, source_type, source_identifier, new_job_id):
     if not source_identifier:
         return
 
-    jobs_collection.update_many(
+    matching_jobs = jobs_collection.find(
         {
             "user": user,
             "source_type": source_type,
             "source_identifier": source_identifier,
-            "job_id": {"$ne": new_job_id},
             "status": {"$in": ACTIVE_JOB_STATUSES},
-        },
-        {
-            "$set": {
-                "status": "superseded",
-                "superseded_at": datetime.now(timezone.utc),
-                "superseded_by": new_job_id,
-                "error_message": "A newer upload of the same video was started."
-            }
         }
     )
+
+    for job in matching_jobs:
+        if job.get("job_id") == new_job_id:
+            continue
+
+        jobs_collection.update_one(
+            {"job_id": job["job_id"]},
+            {
+                "$set": {
+                    "status": "superseded",
+                    "superseded_at": datetime.now(timezone.utc),
+                    "superseded_by": new_job_id,
+                    "error_message": "A newer upload of the same video was started."
+                }
+            }
+        )
 
 
 @upload_bp.route("/upload", methods=["GET", "POST"])

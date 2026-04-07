@@ -122,10 +122,7 @@ def extract_youtube_video_id(url):
 
 def is_job_superseded(job_id):
 
-    job = jobs_collection.find_one(
-        {"job_id": job_id},
-        {"status": 1}
-    )
+    job = jobs_collection.find_one({"job_id": job_id})
     return bool(job and job.get("status") == "superseded")
 
 
@@ -531,18 +528,27 @@ def build_timestamp_summary_text(sections, model_name):
 def claim_next_job(worker_started_at):
 
     print("Checking for next uploaded job")
-    return jobs_collection.find_one_and_update(
+    next_job = jobs_collection.find_one(
         {
             "status": "uploaded",
             "queued_at": {"$gte": worker_started_at}
         },
+        sort=[("queued_at", -1), ("_id", -1)]
+    )
+
+    if not next_job:
+        return None
+
+    jobs_collection.update_one(
+        {"job_id": next_job["job_id"]},
         {
             "$set": {
                 "status": "processing"
             }
-        },
-        sort=[("queued_at", -1), ("_id", -1)]
+        }
     )
+
+    return jobs_collection.find_one({"job_id": next_job["job_id"]})
 
 
 def process_job(job):
