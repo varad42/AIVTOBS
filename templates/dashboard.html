@@ -183,7 +183,7 @@
         const currentToken = ++previewRequestToken;
 
         try {
-            const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+            const response = await fetch(`/youtube_preview?url=${encodeURIComponent(url)}`);
             if (!response.ok) {
                 throw new Error("Preview lookup failed");
             }
@@ -194,7 +194,7 @@
             }
 
             youtubePreviewTitle.textContent = data.title || "YouTube video";
-            youtubePreviewImage.src = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+            youtubePreviewImage.src = data.thumbnail_url || "";
             youtubePreviewCard.hidden = false;
         } catch (error) {
             if (currentToken !== previewRequestToken) {

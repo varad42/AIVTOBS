@@ -1,10 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, session, flash
+from flask import Blueprint, jsonify, redirect, request, send_file, session, flash
 import os
 import re
+import requests
 import subprocess
 import time
 import uuid
-from urllib.parse import unquote, urlparse
+from io import BytesIO
+from urllib.parse import parse_qs, unquote, urlparse
 from datetime import datetime, timedelta, timezone
 
 from database.mongo import jobs_collection
@@ -89,6 +91,26 @@ def is_youtube_url(url):
     return "youtube.com" in hostname or "youtu.be" in hostname
 
 
+def extract_youtube_video_id(url):
+
+    parsed_url = urlparse(url)
+    hostname = parsed_url.netloc.lower()
+
+    if "youtu.be" in hostname:
+        return parsed_url.path.lstrip("/").split("/")[0]
+
+    if "youtube.com" in hostname:
+        query_video_id = parse_qs(parsed_url.query).get("v", [])
+        if query_video_id:
+            return query_video_id[0]
+
+        path_parts = [part for part in parsed_url.path.split("/") if part]
+        if len(path_parts) >= 2 and path_parts[0] in {"embed", "shorts", "live"}:
+            return path_parts[1]
+
+    return ""
+
+
 def build_source_identifier(video, video_url):
 
     if video and video.filename:
@@ -158,6 +180,41 @@ def supersede_active_jobs(user, source_type, source_identifier, new_job_id):
                 }
             }
         )
+
+
+@upload_bp.route("/youtube_preview")
+def youtube_preview():
+
+    video_url = (request.args.get("url") or "").strip()
+
+    if not video_url or not is_youtube_url(video_url):
+        return jsonify({"error": "A valid YouTube URL is required."}), 400
+
+    video_id = extract_youtube_video_id(video_url)
+    if not video_id:
+        return jsonify({"error": "Could not determine the YouTube video id."}), 400
+
+    title = get_video_title_from_url(video_url) or "YouTube video"
+
+    return jsonify(
+        {
+            "title": title,
+            "thumbnail_url": f"/youtube_thumbnail/{video_id}"
+        }
+    )
+
+
+@upload_bp.route("/youtube_thumbnail/<video_id>")
+def youtube_thumbnail(video_id):
+
+    thumbnail_url = f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+    response = requests.get(thumbnail_url, timeout=15)
+    response.raise_for_status()
+
+    return send_file(
+        BytesIO(response.content),
+        mimetype=response.headers.get("Content-Type", "image/jpeg")
+    )
 
 
 @upload_bp.route("/upload", methods=["GET", "POST"])
