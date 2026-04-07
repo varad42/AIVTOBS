@@ -61,10 +61,30 @@ def create_app():
         blog_ready_count = sum(1 for job in jobs if job.get("blog_file"))
         active_job_id = request.args.get("job_id")
         active_job = None
+        active_statuses = [
+            "uploading",
+            "uploaded",
+            "processing",
+            "downloading",
+            "extracting_audio",
+            "transcribing",
+            "waiting_for_model",
+            "summarize_requested",
+            "blog_requested",
+        ]
 
         if active_job_id:
             active_job = jobs_collection.find_one(
                 {"user": session["user"], "job_id": active_job_id}
+            )
+
+        if not active_job:
+            active_job = jobs_collection.find_one(
+                {
+                    "user": session["user"],
+                    "status": {"$in": active_statuses},
+                },
+                sort=[("_id", -1)]
             )
 
         progress_map = {

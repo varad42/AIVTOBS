@@ -9,6 +9,9 @@
         <h1 class="section-title">Choose a summarization model</h1>
         <p class="section-subtitle select-model-subtitle">Video name: <strong>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</strong></p>
         <p class="section-subtitle">Pick the model you want for your video.Once selected, click generate summary.</p>
+        <div class="button-row" style="margin-top: 16px;">
+            <a href="/cleaned_transcript/{{ job.job_id }}" class="btn-secondary">View Cleaned Transcript</a>
+        </div>
 
         <form method="POST" class="surface-form">
             <div>

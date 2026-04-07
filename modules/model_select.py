@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from flask import Blueprint, render_template, request, redirect
 from database.mongo import jobs_collection
-from modules.summarizer import is_llama_cpp_available
+from modules.cloud_storage import exists, read_text
+from modules.summarizer import clean_transcript_text, is_llama_cpp_available
 
 model_bp = Blueprint("model", __name__)
 SUMMARY_MODEL_OPTIONS = [
@@ -193,4 +194,25 @@ def select_model(job_id):
         job=job,
         summary_model_options=visible_summary_model_options,
         transcript_source_options=transcript_source_options
+    )
+
+
+@model_bp.route("/cleaned_transcript/<job_id>")
+def view_cleaned_transcript(job_id):
+    job = jobs_collection.find_one({"job_id": job_id})
+
+    if not job:
+        print(f"Cleaned transcript view failed: job {job_id} not found")
+        return "Job not found"
+
+    transcript_path = job.get("transcript_file") or job.get("original_transcript_file")
+    if not transcript_path or not exists(transcript_path):
+        return "Transcript not ready"
+
+    cleaned_transcript = clean_transcript_text(read_text(transcript_path))
+
+    return render_template(
+        "cleaned_transcript.html",
+        job=job,
+        cleaned_transcript=cleaned_transcript
     )

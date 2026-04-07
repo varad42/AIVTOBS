@@ -869,6 +869,26 @@ select {
     border: 1px solid var(--line-soft);
 }
 
+.youtube-preview-card {
+    display: grid;
+    gap: 14px;
+    margin-top: -2px;
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(102, 145, 220, 0.16);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.youtube-preview-image {
+    max-width: 360px;
+    background: rgba(223, 234, 255, 0.72);
+}
+
+.youtube-preview-copy {
+    display: grid;
+    gap: 6px;
+}
+
 .table-wrap {
     overflow-x: auto;
     border: 1px solid rgba(102, 145, 220, 0.18);

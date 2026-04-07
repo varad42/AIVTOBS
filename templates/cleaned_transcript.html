@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Cleaned Transcript | AI Video Studio{% endblock %}
+
+{% block content %}
+<section class="content-panel">
+    <div class="section-header">
+        <div>
+            <p class="auth-eyebrow">Transcript</p>
+            <h1 class="section-title">Cleaned Transcript</h1>
+            <p class="section-subtitle">Video name: <strong>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</strong></p>
+        </div>
+    </div>
+
+    <div class="text-content" style="margin-top: 22px;">{{ cleaned_transcript }}</div>
+
+    <div class="action-row" style="margin-top: 28px;">
+        <a class="btn-secondary" href="/select_model/{{ job.job_id }}">Back to Select Model</a>
+    </div>
+</section>
+{% endblock %}
