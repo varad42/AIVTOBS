@@ -1133,10 +1133,10 @@ td {
     gap: 18px;
     padding: 22px;
     background:
-        linear-gradient(180deg, rgba(12, 36, 72, 0.92), rgba(26, 55, 97, 0.9)),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
-    border: 1px solid rgba(160, 196, 255, 0.18);
-    box-shadow: 0 30px 60px rgba(17, 40, 79, 0.24);
+        radial-gradient(circle at top, rgba(98, 168, 255, 0.18), transparent 26%),
+        linear-gradient(180deg, rgba(7, 24, 51, 0.98), rgba(18, 43, 80, 0.97));
+    border: 1px solid rgba(173, 214, 255, 0.2);
+    box-shadow: 0 34px 70px rgba(8, 24, 52, 0.34);
 }
 
 .dashboard-stage .dashboard-sidebar-modern,
@@ -1144,8 +1144,8 @@ td {
 .dashboard-stage .dashboard-sidebar-modern .account-card,
 .dashboard-stage .dashboard-sidebar-modern .metric {
     color: #edf5ff;
-    border-color: rgba(173, 205, 255, 0.16);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(190, 220, 255, 0.16);
+    background: rgba(255, 255, 255, 0.1);
     box-shadow: none;
 }
 
@@ -1177,7 +1177,7 @@ td {
     gap: 16px;
     padding: 18px;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.08));
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.1));
 }
 
 .dashboard-profile-top {
@@ -1223,7 +1223,7 @@ td {
 }
 
 .dashboard-sidebar-metrics .metric {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .dashboard-history-list {
@@ -1233,14 +1233,16 @@ td {
 .history-studio-card {
     gap: 12px;
     padding: 16px 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(173, 205, 255, 0.14);
+    background: rgba(255, 255, 255, 0.13);
+    border-color: rgba(198, 224, 255, 0.16);
 }
 
 .history-studio-card-active {
-    border-color: rgba(194, 228, 255, 0.56);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.1));
-    box-shadow: inset 0 0 0 1px rgba(194, 228, 255, 0.18);
+    border-color: rgba(206, 231, 255, 0.68);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.14));
+    box-shadow:
+        inset 0 0 0 1px rgba(194, 228, 255, 0.2),
+        0 14px 28px rgba(7, 20, 44, 0.18);
 }
 
 .history-studio-head {
@@ -1253,7 +1255,7 @@ td {
 .history-studio-source {
     font-size: 0.8rem;
     font-weight: 700;
-    color: rgba(233, 244, 255, 0.72);
+    color: rgba(245, 250, 255, 0.82);
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
