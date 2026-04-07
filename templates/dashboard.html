@@ -47,15 +47,8 @@
 
                 <label class="surface-label">
                     Video URL
-                    <input class="surface-input" name="video_url" id="dashboardVideoUrlInput" placeholder="https://www.youtube.com/watch?v=...">
+                    <input class="surface-input" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
                 </label>
-                <div class="youtube-preview-card" id="youtubePreviewCard" hidden>
-                    <img class="media-preview youtube-preview-image" id="youtubePreviewImage" alt="YouTube thumbnail preview">
-                    <div class="youtube-preview-copy">
-                        <p class="auth-eyebrow">YouTube Preview</p>
-                        <h3 class="card-title" id="youtubePreviewTitle"></h3>
-                    </div>
-                </div>
 
                 <div class="button-row">
                     <button type="submit" class="btn-primary" id="dashboardUploadButton">Process video</button>
@@ -80,6 +73,20 @@
                         <span style="width: {{ active_progress }}%;"></span>
                     </div>
                 </div>
+
+                {% if active_job and active_job.get("source_type") == "youtube" and active_job.get("transcript_saved_at") and active_job.get("youtube_video_id") %}
+                <div class="youtube-preview-card" style="margin-top: 24px;">
+                    <img
+                        class="media-preview youtube-preview-image"
+                        src="/youtube_thumbnail/{{ active_job.get('youtube_video_id') }}"
+                        alt="YouTube thumbnail preview"
+                    >
+                    <div class="youtube-preview-copy">
+                        <p class="auth-eyebrow">YouTube Video</p>
+                        <h3 class="card-title">{{ active_job.get("display_name") or active_job.get("job_slug", active_job.job_id) }}</h3>
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="action-row" style="margin-top: 24px;">
                     {% if not active_job %}
@@ -112,102 +119,11 @@
 <script>
     const dashboardUploadForm = document.getElementById("dashboardUploadForm");
     const dashboardUploadButton = document.getElementById("dashboardUploadButton");
-    const dashboardVideoUrlInput = document.getElementById("dashboardVideoUrlInput");
-    const youtubePreviewCard = document.getElementById("youtubePreviewCard");
-    const youtubePreviewImage = document.getElementById("youtubePreviewImage");
-    const youtubePreviewTitle = document.getElementById("youtubePreviewTitle");
 
     if (dashboardUploadForm && dashboardUploadButton) {
         dashboardUploadForm.addEventListener("submit", function () {
             dashboardUploadButton.disabled = true;
             dashboardUploadButton.textContent = "Starting...";
-        });
-    }
-
-    const extractYoutubeVideoId = function (url) {
-        if (!url) {
-            return "";
-        }
-
-        try {
-            const parsedUrl = new URL(url);
-            const hostname = parsedUrl.hostname.replace("www.", "").toLowerCase();
-
-            if (hostname === "youtu.be") {
-                return parsedUrl.pathname.replace(/^\/+/, "").split("/")[0];
-            }
-
-            if (hostname === "youtube.com" || hostname === "m.youtube.com") {
-                const queryId = parsedUrl.searchParams.get("v");
-                if (queryId) {
-                    return queryId;
-                }
-
-                const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
-                if (pathParts.length >= 2 && ["embed", "shorts", "live"].includes(pathParts[0])) {
-                    return pathParts[1];
-                }
-            }
-        } catch (error) {
-            return "";
-        }
-
-        return "";
-    };
-
-    const hideYoutubePreview = function () {
-        if (!youtubePreviewCard) {
-            return;
-        }
-
-        youtubePreviewCard.hidden = true;
-        youtubePreviewImage.removeAttribute("src");
-        youtubePreviewTitle.textContent = "";
-    };
-
-    let previewRequestToken = 0;
-
-    const updateYoutubePreview = async function () {
-        if (!dashboardVideoUrlInput || !youtubePreviewCard) {
-            return;
-        }
-
-        const url = dashboardVideoUrlInput.value.trim();
-        const videoId = extractYoutubeVideoId(url);
-
-        if (!videoId) {
-            hideYoutubePreview();
-            return;
-        }
-
-        const currentToken = ++previewRequestToken;
-
-        try {
-            const response = await fetch(`/youtube_preview?url=${encodeURIComponent(url)}`);
-            if (!response.ok) {
-                throw new Error("Preview lookup failed");
-            }
-
-            const data = await response.json();
-            if (currentToken !== previewRequestToken) {
-                return;
-            }
-
-            youtubePreviewTitle.textContent = data.title || "YouTube video";
-            youtubePreviewImage.src = data.thumbnail_url || "";
-            youtubePreviewCard.hidden = false;
-        } catch (error) {
-            if (currentToken !== previewRequestToken) {
-                return;
-            }
-
-            hideYoutubePreview();
-        }
-    };
-
-    if (dashboardVideoUrlInput) {
-        dashboardVideoUrlInput.addEventListener("input", function () {
-            updateYoutubePreview();
         });
     }
 
