@@ -60,6 +60,7 @@ def create_app():
         summary_ready_count = sum(1 for job in jobs if job.get("summary_file"))
         blog_ready_count = sum(1 for job in jobs if job.get("blog_file"))
         active_job_id = request.args.get("job_id")
+        start_new_chat = request.args.get("new_chat") == "1"
         active_job = None
         active_statuses = [
             "uploading",
@@ -73,12 +74,12 @@ def create_app():
             "blog_requested",
         ]
 
-        if active_job_id:
+        if active_job_id and not start_new_chat:
             active_job = jobs_collection.find_one(
                 {"user": session["user"], "job_id": active_job_id}
             )
 
-        if not active_job:
+        if not active_job and not start_new_chat:
             active_job = jobs_collection.find_one(
                 {
                     "user": session["user"],
@@ -115,7 +116,9 @@ def create_app():
             "blog_requested",
         }
         should_auto_refresh = bool(
-            active_job and active_job.get("status") in auto_refresh_statuses
+            (not start_new_chat)
+            and active_job
+            and active_job.get("status") in auto_refresh_statuses
         )
 
         return render_template(

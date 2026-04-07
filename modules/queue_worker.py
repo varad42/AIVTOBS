@@ -525,15 +525,14 @@ def build_timestamp_summary_text(sections, model_name):
     return "\n".join(output_lines).strip()
 
 
-def claim_next_job(worker_started_at):
+def claim_next_job():
 
     print("Checking for next uploaded job")
     next_job = jobs_collection.find_one(
         {
             "status": "uploaded",
-            "queued_at": {"$gte": worker_started_at}
         },
-        sort=[("queued_at", -1), ("_id", -1)]
+        sort=[("queued_at", 1), ("_id", 1)]
     )
 
     if not next_job:
@@ -543,7 +542,8 @@ def claim_next_job(worker_started_at):
         {"job_id": next_job["job_id"]},
         {
             "$set": {
-                "status": "processing"
+                "status": "processing",
+                "processing_started_at": datetime.now(timezone.utc),
             }
         }
     )
@@ -939,30 +939,24 @@ def worker_loop():
 
     print("Worker started")
 
-    worker_started_at = datetime.now(timezone.utc)
-
     while True:
 
-        job = claim_next_job(
-            worker_started_at
-        )
+        job = claim_next_job()
 
         if not job:
             job = jobs_collection.find_one(
                 {
                     "status": "summarize_requested",
-                    "model_selected_at": {"$gte": worker_started_at}
                 },
-                sort=[("model_selected_at", -1), ("_id", -1)]
+                sort=[("model_selected_at", 1), ("_id", 1)]
             )
 
         if not job:
             job = jobs_collection.find_one(
                 {
                     "status": "blog_requested",
-                    "blog_requested_at": {"$gte": worker_started_at}
                 },
-                sort=[("blog_requested_at", -1), ("_id", -1)]
+                sort=[("blog_requested_at", 1), ("_id", 1)]
             )
 
         if job:

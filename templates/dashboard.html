@@ -14,6 +14,13 @@
         </div>
 
         <div class="sidebar-section sidebar-scroll">
+            <a href="/dashboard?new_chat=1" class="history-job-link history-new-chat-link">
+            <article class="history-mini-card history-new-chat-card">
+                <h3>New chat</h3>
+                <p class="card-copy">Start a fresh upload</p>
+            </article>
+            </a>
+
             {% for job in jobs %}
             <a href="/dashboard?job_id={{ job.job_id }}" class="history-job-link">
             <article class="history-mini-card">
@@ -90,7 +97,7 @@
 
                 <div class="action-row" style="margin-top: 24px;">
                     {% if not active_job %}
-                    <span class="section-subtitle">No active job selected yet. Start a new upload or open a job from History.</span>
+                    <span class="section-subtitle">Dashboard is ready for a new video upload or YouTube URL.</span>
                     {% endif %}
 
                     {% if active_job %}

@@ -550,6 +550,10 @@ select {
     display: block;
 }
 
+.history-new-chat-link {
+    margin-bottom: 12px;
+}
+
 .sidebar-link,
 .history-mini-card,
 .account-card,
@@ -583,6 +587,17 @@ select {
     border-radius: 18px;
     overflow: hidden;
     transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.history-new-chat-card {
+    border-color: rgba(42, 102, 217, 0.22);
+    background:
+        linear-gradient(135deg, rgba(245, 250, 255, 0.98), rgba(225, 238, 255, 0.92));
+    box-shadow: 0 14px 28px rgba(77, 112, 176, 0.12);
+}
+
+.history-new-chat-card h3 {
+    font-size: 1rem;
 }
 
 .history-job-link:hover .history-mini-card {
