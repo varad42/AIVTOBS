@@ -1132,6 +1132,7 @@ td {
 .dashboard-sidebar-modern {
     gap: 18px;
     padding: 22px;
+    height: calc(100vh - 40px);
     background:
         radial-gradient(circle at top, rgba(98, 168, 255, 0.18), transparent 26%),
         linear-gradient(180deg, rgba(7, 24, 51, 0.98), rgba(18, 43, 80, 0.97));
@@ -1171,11 +1172,29 @@ td {
 
 .dashboard-sidebar-header {
     align-items: flex-start;
+    min-height: auto;
+}
+
+.dashboard-sidebar-header .auth-eyebrow {
+    color: rgba(221, 237, 255, 0.86);
+}
+
+.dashboard-sidebar-header .card-title {
+    color: #ffffff;
+    font-size: 2rem;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    text-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+}
+
+.dashboard-sidebar-top {
+    display: grid;
+    gap: 14px;
 }
 
 .dashboard-profile-card {
     gap: 16px;
-    padding: 18px;
+    padding: 16px;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.1));
 }
@@ -1215,7 +1234,7 @@ td {
 }
 
 .dashboard-new-chat {
-    min-height: 54px;
+    min-height: 50px;
 }
 
 .dashboard-sidebar-metrics {
@@ -1228,6 +1247,31 @@ td {
 
 .dashboard-history-list {
     gap: 12px;
+    flex: 1;
+    min-height: 0;
+    padding-right: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.dashboard-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+.dashboard-history-header .auth-eyebrow {
+    color: rgba(221, 237, 255, 0.86);
+}
+
+.dashboard-history-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dashboard-history-list::-webkit-scrollbar-thumb {
+    background: rgba(197, 223, 255, 0.28);
+    border-radius: 999px;
 }
 
 .history-studio-card {

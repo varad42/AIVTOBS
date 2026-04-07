@@ -16,19 +16,21 @@
             </div>
         </div>
 
-        <div class="account-card history-account-card dashboard-profile-card">
-            <div class="dashboard-profile-top">
-                <div class="dashboard-avatar" aria-hidden="true">{{ (user_email or "u")[0]|upper }}</div>
-                <div class="dashboard-profile-copy">
-                    <p class="auth-eyebrow">Signed in</p>
-                    <strong>{{ user_email }}</strong>
-                    <span class="meta-text">Studio workspace active</span>
+        <div class="dashboard-sidebar-top">
+            <div class="account-card history-account-card dashboard-profile-card">
+                <div class="dashboard-profile-top">
+                    <div class="dashboard-avatar" aria-hidden="true">{{ (user_email or "u")[0]|upper }}</div>
+                    <div class="dashboard-profile-copy">
+                        <p class="auth-eyebrow">Signed in</p>
+                        <strong>{{ user_email }}</strong>
+                        <span class="meta-text">Studio workspace active</span>
+                    </div>
                 </div>
+                <a href="/logout" class="btn-secondary dashboard-sidebar-logout">Logout</a>
             </div>
-            <a href="/logout" class="btn-secondary dashboard-sidebar-logout">Logout</a>
-        </div>
 
-        <a href="/dashboard?new_chat=1" class="btn-primary dashboard-new-chat">+ New Chat</a>
+            <a href="/dashboard?new_chat=1" class="btn-primary dashboard-new-chat">+ New Chat</a>
+        </div>
 
         <div class="metric-list dashboard-sidebar-metrics">
             <article class="metric">
@@ -39,6 +41,10 @@
                 <span>Blogs</span>
                 <strong>{{ blog_ready_count }}</strong>
             </article>
+        </div>
+
+        <div class="dashboard-history-header">
+            <p class="auth-eyebrow">Recent Jobs</p>
         </div>
 
         <div class="sidebar-section sidebar-scroll dashboard-history-list">
