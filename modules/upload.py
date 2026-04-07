@@ -249,6 +249,7 @@ def upload():
         source_type = "youtube"
         local_upload_seconds = None
         source_identifier = build_source_identifier(video, youtube_url)
+        youtube_video_id = extract_youtube_video_id(youtube_url) if youtube_url else ""
 
         if video and video.filename != "":
             print(f"Video file received: {video.filename}")
@@ -265,6 +266,7 @@ def upload():
                 "file": file_path,
                 "source_type": source_type,
                 "source_identifier": source_identifier,
+                "youtube_video_id": youtube_video_id,
                 "status": "uploading",
                 "queued_at": datetime.now(timezone.utc),
                 "local_upload_seconds": None,
@@ -318,6 +320,7 @@ def upload():
             "file": file_path,
             "source_type": source_type,
             "source_identifier": source_identifier,
+            "youtube_video_id": youtube_video_id,
             "status": "uploaded",
             "uploaded_at": datetime.now(timezone.utc),
             "queued_at": datetime.now(timezone.utc),
