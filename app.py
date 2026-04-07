@@ -53,13 +53,29 @@ def create_app():
             jobs_collection.find(
                 {
                     "user": session["user"],
-                    "status": {"$in": ["summary_ready", "blog_ready"]},
+                    "status": {
+                        "$in": [
+                            "uploading",
+                            "uploaded",
+                            "processing",
+                            "downloading",
+                            "extracting_audio",
+                            "transcribing",
+                            "waiting_for_model",
+                            "summarize_requested",
+                            "summary_ready",
+                            "blog_requested",
+                            "blog_ready",
+                            "error",
+                        ]
+                    },
                 }
             ).sort("_id", -1).limit(8)
         )
         summary_ready_count = sum(1 for job in jobs if job.get("summary_file"))
         blog_ready_count = sum(1 for job in jobs if job.get("blog_file"))
         active_job_id = request.args.get("job_id")
+        start_new_chat = request.args.get("new_chat") == "1"
         active_job = None
         active_statuses = [
             "uploading",
@@ -73,12 +89,12 @@ def create_app():
             "blog_requested",
         ]
 
-        if active_job_id:
+        if active_job_id and not start_new_chat:
             active_job = jobs_collection.find_one(
                 {"user": session["user"], "job_id": active_job_id}
             )
 
-        if not active_job:
+        if not active_job and not start_new_chat:
             active_job = jobs_collection.find_one(
                 {
                     "user": session["user"],
@@ -117,12 +133,15 @@ def create_app():
             "blog_requested",
         }
         should_auto_refresh = bool(
-            active_job and active_job.get("status") in auto_refresh_statuses
+            (not start_new_chat)
+            and active_job
+            and active_job.get("status") in auto_refresh_statuses
         )
 
         return render_template(
             "dashboard.html",
             show_login=False,
+            user_email=session["user"],
             jobs=jobs,
             summary_ready_count=summary_ready_count,
             blog_ready_count=blog_ready_count,
