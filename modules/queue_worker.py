@@ -47,6 +47,10 @@ TIMESTAMP_SUMMARY_MAX_CHARS = 2200
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+class JobSupersededError(RuntimeError):
+    pass
+
+
 def resolve_path(path):
 
     if not path:
@@ -114,6 +118,23 @@ def extract_youtube_video_id(url):
             return path_parts[1]
 
     return None
+
+
+def is_job_superseded(job_id):
+
+    job = jobs_collection.find_one(
+        {"job_id": job_id},
+        {"status": 1}
+    )
+    return bool(job and job.get("status") == "superseded")
+
+
+def ensure_job_active(job_id):
+
+    if is_job_superseded(job_id):
+        raise JobSupersededError(
+            f"Job {job_id} was superseded by a newer upload of the same video."
+        )
 
 
 def guess_remote_video_extension(url, content_type=None):
@@ -331,7 +352,7 @@ def split_wav_into_chunks(audio_path, chunk_seconds=WHISPER_CHUNK_SECONDS):
     return temp_dir, chunk_paths
 
 
-def transcribe_with_whisper(audio_path, language=None, task="transcribe", whisper_model_name="base", beam_size=1):
+def transcribe_with_whisper(audio_path, language=None, task="transcribe", whisper_model_name="base", beam_size=1, job_id=None):
 
     print(f"Preparing faster-whisper transcription for audio: {audio_path}")
     model = get_whisper_model(whisper_model_name)
@@ -357,6 +378,8 @@ def transcribe_with_whisper(audio_path, language=None, task="transcribe", whispe
         collected_segments = []
 
         for index, chunk_path in enumerate(chunk_paths, start=1):
+            if job_id:
+                ensure_job_active(job_id)
             print(f"faster-whisper transcription started for chunk {index}/{len(chunk_paths)}")
             segments, info = model.transcribe(
                 chunk_path,
@@ -391,14 +414,15 @@ def transcribe_with_whisper(audio_path, language=None, task="transcribe", whispe
         chunk_dir.cleanup()
 
 
-def transcribe_audio(audio_path, txt_path, language=None, task="transcribe", whisper_model_name="base", beam_size=1):
+def transcribe_audio(audio_path, txt_path, language=None, task="transcribe", whisper_model_name="base", beam_size=1, job_id=None):
 
     text, info, segments = transcribe_with_whisper(
         audio_path,
         language=language,
         task=task,
         whisper_model_name=whisper_model_name,
-        beam_size=beam_size
+        beam_size=beam_size,
+        job_id=job_id
     )
 
     with open(resolve_path(txt_path), "w", encoding="utf-8") as f:
@@ -516,7 +540,8 @@ def claim_next_job(worker_started_at):
             "$set": {
                 "status": "processing"
             }
-        }
+        },
+        sort=[("queued_at", -1), ("_id", -1)]
     )
 
 
@@ -531,6 +556,7 @@ def process_job(job):
 
         if job["status"] == "summarize_requested":
             print(f"Summary generation started for job {job_id}")
+            ensure_job_active(job_id)
 
             text = read_text(job["transcript_file"])
 
@@ -609,6 +635,7 @@ def process_job(job):
 
         if job["status"] == "blog_requested":
             print(f"Blog generation started for job {job_id}")
+            ensure_job_active(job_id)
 
             summary = read_text(job["summary_file"])
 
@@ -634,6 +661,7 @@ def process_job(job):
         # ---------- normal ----------
 
         print(f"Processing pipeline started for job {job_id}")
+        ensure_job_active(job_id)
 
         file_path = job["file"]
         transcript_path = build_job_path(f"{job_file_stem}.txt")
@@ -647,6 +675,7 @@ def process_job(job):
             local_transcript_path = os.path.join(work_dir, f"{job_file_stem}.txt")
 
             if file_path.startswith("http"):
+                ensure_job_active(job_id)
                 youtube_video_id = extract_youtube_video_id(file_path)
 
                 if youtube_video_id:
@@ -785,6 +814,7 @@ def process_job(job):
                 {"job_id": job_id},
                 {"$set": {"status": "extracting_audio"}}
             )
+            ensure_job_active(job_id)
 
             audio_extraction_started_at = time.perf_counter()
             extract_audio(
@@ -810,6 +840,7 @@ def process_job(job):
                     }
                 }
             )
+            ensure_job_active(job_id)
 
             transcription_started_at = time.perf_counter()
             transcription_info, transcript_segments = transcribe_audio(
@@ -818,8 +849,10 @@ def process_job(job):
                 language="en",
                 task="transcribe",
                 whisper_model_name="base",
-                beam_size=1
+                beam_size=1,
+                job_id=job_id
             )
+            ensure_job_active(job_id)
             upload_local_file(local_transcript_path, transcript_path, content_type="text/plain; charset=utf-8")
             upload_json(segments_path, transcript_segments)
             transcription_seconds = time.perf_counter() - transcription_started_at
@@ -875,6 +908,11 @@ def process_job(job):
                     f"{upload_to_transcript_seconds:.2f} seconds"
                 )
 
+    except JobSupersededError as error:
+
+        print(str(error))
+        return
+
     except Exception as e:
 
         print(f"ERROR in job {job.get('job_id')}: {e}")
@@ -908,7 +946,8 @@ def worker_loop():
                 {
                     "status": "summarize_requested",
                     "model_selected_at": {"$gte": worker_started_at}
-                }
+                },
+                sort=[("model_selected_at", -1), ("_id", -1)]
             )
 
         if not job:
@@ -916,7 +955,8 @@ def worker_loop():
                 {
                     "status": "blog_requested",
                     "blog_requested_at": {"$gte": worker_started_at}
-                }
+                },
+                sort=[("blog_requested_at", -1), ("_id", -1)]
             )
 
         if job:

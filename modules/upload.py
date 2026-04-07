@@ -12,6 +12,17 @@ from modules.cloud_storage import build_upload_path, save_upload
 
 upload_bp = Blueprint("upload", __name__)
 DEDUPLICATION_WINDOW_MINUTES = 1
+ACTIVE_JOB_STATUSES = [
+    "uploading",
+    "uploaded",
+    "processing",
+    "downloading",
+    "extracting_audio",
+    "transcribing",
+    "waiting_for_model",
+    "summarize_requested",
+    "blog_requested",
+]
 
 
 def slugify(value):
@@ -78,6 +89,14 @@ def is_youtube_url(url):
     return "youtube.com" in hostname or "youtu.be" in hostname
 
 
+def build_source_identifier(video, video_url):
+
+    if video and video.filename:
+        return os.path.basename(video.filename).strip().lower()
+
+    return (video_url or "").strip()
+
+
 def find_recent_duplicate_job(user, source_type, source_identifier):
 
     if not source_identifier:
@@ -103,9 +122,34 @@ def find_recent_duplicate_job(user, source_type, source_identifier):
                     "blog_ready"
                 ]
             },
-            "uploaded_at": {"$gte": cutoff}
+            "uploaded_at": {"$gte": cutoff},
+            "source_identifier": source_identifier
         },
         sort=[("_id", -1)]
+    )
+
+
+def supersede_active_jobs(user, source_type, source_identifier, new_job_id):
+
+    if not source_identifier:
+        return
+
+    jobs_collection.update_many(
+        {
+            "user": user,
+            "source_type": source_type,
+            "source_identifier": source_identifier,
+            "job_id": {"$ne": new_job_id},
+            "status": {"$in": ACTIVE_JOB_STATUSES},
+        },
+        {
+            "$set": {
+                "status": "superseded",
+                "superseded_at": datetime.now(timezone.utc),
+                "superseded_by": new_job_id,
+                "error_message": "A newer upload of the same video was started."
+            }
+        }
     )
 
 
@@ -140,7 +184,7 @@ def upload():
         file_path = ""
         source_type = "youtube"
         local_upload_seconds = None
-        source_identifier = ""
+        source_identifier = build_source_identifier(video, youtube_url)
 
         if video and video.filename != "":
             print(f"Video file received: {video.filename}")
@@ -149,18 +193,6 @@ def upload():
             file_extension = os.path.splitext(video.filename)[1]
             file_path = build_upload_path(f"{job_slug}{file_extension}")
 
-            source_identifier = file_path
-            duplicate_job = find_recent_duplicate_job(
-                session["user"],
-                source_type,
-                source_identifier
-            )
-
-            if duplicate_job:
-                print(f"Duplicate local upload detected, reusing job {duplicate_job['job_id']}")
-                flash("A recent job for this file already exists. Reusing that job instead of starting a duplicate.", "info")
-                return redirect(f"/dashboard?job_id={duplicate_job['job_id']}")
-
             placeholder_job = {
                 "job_id": job_id,
                 "job_slug": job_slug,
@@ -168,6 +200,7 @@ def upload():
                 "user": session["user"],
                 "file": file_path,
                 "source_type": source_type,
+                "source_identifier": source_identifier,
                 "status": "uploading",
                 "queued_at": datetime.now(timezone.utc),
                 "local_upload_seconds": None,
@@ -176,6 +209,12 @@ def upload():
                 "blog": None
             }
             jobs_collection.insert_one(placeholder_job)
+            supersede_active_jobs(
+                session["user"],
+                source_type,
+                source_identifier,
+                job_id
+            )
             print(f"Job placeholder created before upload: {job_id} ({job_slug})")
 
             local_upload_started_at = time.perf_counter()
@@ -200,18 +239,6 @@ def upload():
             print(f"Video URL received: {youtube_url} ({source_type})")
 
             file_path = youtube_url
-            source_identifier = file_path
-
-            duplicate_job = find_recent_duplicate_job(
-                session["user"],
-                source_type,
-                source_identifier
-            )
-
-            if duplicate_job:
-                print(f"Duplicate URL job detected, reusing job {duplicate_job['job_id']}")
-                flash("A recent job for this URL already exists. Reusing that job instead of starting a duplicate.", "info")
-                return redirect(f"/dashboard?job_id={duplicate_job['job_id']}")
 
         else:
             print("Upload failed: no video file or video URL provided")
@@ -226,6 +253,7 @@ def upload():
             "user": session["user"],
             "file": file_path,
             "source_type": source_type,
+            "source_identifier": source_identifier,
             "status": "uploaded",
             "uploaded_at": datetime.now(timezone.utc),
             "queued_at": datetime.now(timezone.utc),
@@ -238,6 +266,12 @@ def upload():
 
         if source_type != "local":
             jobs_collection.insert_one(job_data)
+            supersede_active_jobs(
+                session["user"],
+                source_type,
+                source_identifier,
+                job_id
+            )
             print(f"Job created: {job_id} ({job_slug})")
 
         return redirect(f"/dashboard?job_id={job_id}")
