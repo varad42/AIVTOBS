@@ -1130,6 +1130,9 @@ td {
 }
 
 .dashboard-sidebar-modern {
+    position: sticky;
+    z-index: 3;
+    isolation: isolate;
     gap: 18px;
     padding: 22px;
     height: calc(100vh - 40px);
@@ -1246,6 +1249,8 @@ td {
 }
 
 .dashboard-history-list {
+    position: relative;
+    z-index: 1;
     gap: 12px;
     flex: 1;
     min-height: 0;
@@ -1277,8 +1282,9 @@ td {
 .history-studio-card {
     gap: 12px;
     padding: 16px 14px;
-    background: rgba(255, 255, 255, 0.13);
-    border-color: rgba(198, 224, 255, 0.16);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.1));
+    border-color: rgba(198, 224, 255, 0.24);
+    backdrop-filter: blur(10px);
 }
 
 .history-studio-card-active {
@@ -1316,6 +1322,8 @@ td {
 }
 
 .dashboard-workspace-modern {
+    position: relative;
+    z-index: 1;
     gap: 24px;
 }
 
