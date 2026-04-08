@@ -1371,7 +1371,23 @@ td {
     display: block;
     object-fit: cover;
     border-radius: 999px;
+    animation: dashboard-ball-spin 12s linear infinite;
     filter: drop-shadow(0 24px 44px rgba(59, 111, 198, 0.22));
+}
+
+@keyframes dashboard-ball-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-hero-ball-video {
+        animation: none;
+    }
 }
 
 .dashboard-hero-subtitle {
