@@ -10,17 +10,35 @@ const client = axios.create({
 const extractJobId = (payload) =>
   payload?.jobId || payload?.job_id || payload?.id || payload?.data?.jobId || payload?.data?.job_id;
 
+const extractJobIdFromResponseUrl = (responseUrl) => {
+  if (!responseUrl) return "";
+  try {
+    const parsed = new URL(responseUrl);
+    return parsed.searchParams.get("job_id") || "";
+  } catch {
+    return "";
+  }
+};
+
 export const api = {
   async uploadVideo(file) {
     const formData = new FormData();
     formData.append("video", file);
-    const response = await client.post("/upload-video", formData);
-    return { ...response.data, jobId: extractJobId(response.data) };
+    const response = await client.post("/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
+    return { ...response.data, jobId: redirectJobId || extractJobId(response.data) };
   },
 
   async processYoutube(videoUrl) {
-    const response = await client.post("/process-youtube", { video_url: videoUrl });
-    return { ...response.data, jobId: extractJobId(response.data) };
+    const formData = new FormData();
+    formData.append("video_url", videoUrl);
+    const response = await client.post("/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
+    return { ...response.data, jobId: redirectJobId || extractJobId(response.data) };
   },
 
   async startProcessing({ jobId, model, length }) {
