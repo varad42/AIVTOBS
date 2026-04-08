@@ -1340,17 +1340,41 @@ td {
 
 .dashboard-hero-copy {
     max-width: 760px;
+    display: grid;
+    gap: 16px;
 }
 
-.dashboard-hero-title {
-    max-width: 12ch;
-    color: var(--text-dark);
-    font-size: clamp(2.5rem, 5vw, 4.2rem);
+.dashboard-hero-ball-wrap {
+    position: relative;
+    width: min(100%, 260px);
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    margin-top: 4px;
+    border-radius: 32px;
+    background:
+        radial-gradient(circle at center, rgba(105, 216, 255, 0.16), transparent 54%),
+        radial-gradient(circle at 30% 30%, rgba(42, 102, 217, 0.14), transparent 36%);
+    box-shadow:
+        inset 0 0 0 1px rgba(136, 181, 244, 0.14),
+        0 24px 48px rgba(77, 112, 176, 0.12);
+}
+
+.dashboard-hero-ball-source {
+    display: none;
+}
+
+.dashboard-hero-ball-canvas {
+    width: min(100%, 220px);
+    aspect-ratio: 1;
+    display: block;
+    background: transparent;
+    filter: drop-shadow(0 24px 44px rgba(59, 111, 198, 0.22));
 }
 
 .dashboard-hero-subtitle {
     max-width: 68ch;
-    margin-top: 14px;
+    margin-top: 0;
 }
 
 .dashboard-hero-actions {
@@ -1671,8 +1695,8 @@ td {
 }
 
 @media (max-width: 480px) {
-    .dashboard-hero-title {
-        font-size: 2rem;
+    .dashboard-hero-ball-wrap {
+        width: min(100%, 220px);
     }
 
     .dashboard-stage-list,

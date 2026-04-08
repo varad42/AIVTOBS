@@ -78,7 +78,20 @@
         <section class="content-panel dashboard-hero-panel" id="upload-studio">
             <div class="dashboard-hero-copy">
                 <p class="auth-eyebrow">AI Video Studio</p>
-                <h1 class="hero-title dashboard-hero-title">Turn videos into summaries and blog-ready content.</h1>
+                <div class="dashboard-hero-ball-wrap" aria-hidden="true">
+                    <video
+                        class="dashboard-hero-ball-source"
+                        id="dashboardHeroBallSource"
+                        autoplay
+                        muted
+                        loop
+                        playsinline
+                        preload="auto"
+                    >
+                        <source src="{{ url_for('static', filename='media/login-ball.mp4') }}" type="video/mp4">
+                    </video>
+                    <canvas class="dashboard-hero-ball-canvas" id="dashboardHeroBallCanvas"></canvas>
+                </div>
                 <p class="hero-copy dashboard-hero-subtitle">Drop in a local file or paste a YouTube link. The studio handles the pipeline and keeps the current job visible while it works.</p>
             </div>
 
@@ -216,28 +229,32 @@
         });
     }
 
-    const loginBallVideo = document.getElementById("loginBallSource");
-    const loginBallCanvas = document.getElementById("loginBallCanvas");
+    const attachBallCanvas = function (videoId, canvasId) {
+        const ballVideo = document.getElementById(videoId);
+        const ballCanvas = document.getElementById(canvasId);
 
-    if (loginBallVideo && loginBallCanvas) {
-        const context = loginBallCanvas.getContext("2d", { willReadFrequently: true });
+        if (!ballVideo || !ballCanvas) {
+            return;
+        }
+
+        const context = ballCanvas.getContext("2d", { willReadFrequently: true });
 
         const drawBallFrame = function () {
-            if (!context || loginBallVideo.readyState < 2) {
+            if (!context || ballVideo.readyState < 2) {
                 requestAnimationFrame(drawBallFrame);
                 return;
             }
 
-            const width = loginBallVideo.videoWidth || 320;
-            const height = loginBallVideo.videoHeight || 320;
+            const width = ballVideo.videoWidth || 320;
+            const height = ballVideo.videoHeight || 320;
 
-            if (loginBallCanvas.width !== width || loginBallCanvas.height !== height) {
-                loginBallCanvas.width = width;
-                loginBallCanvas.height = height;
+            if (ballCanvas.width !== width || ballCanvas.height !== height) {
+                ballCanvas.width = width;
+                ballCanvas.height = height;
             }
 
             context.clearRect(0, 0, width, height);
-            context.drawImage(loginBallVideo, 0, 0, width, height);
+            context.drawImage(ballVideo, 0, 0, width, height);
 
             const frame = context.getImageData(0, 0, width, height);
             const pixels = frame.data;
@@ -260,10 +277,17 @@
             requestAnimationFrame(drawBallFrame);
         };
 
-        loginBallVideo.addEventListener("play", function () {
+        ballVideo.addEventListener("play", function () {
             requestAnimationFrame(drawBallFrame);
         });
-    }
+
+        if (!ballVideo.paused) {
+            requestAnimationFrame(drawBallFrame);
+        }
+    };
+
+    attachBallCanvas("dashboardHeroBallSource", "dashboardHeroBallCanvas");
+    attachBallCanvas("loginBallSource", "loginBallCanvas");
 </script>
 
 {% if show_login %}
