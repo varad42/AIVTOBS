@@ -30,7 +30,7 @@ export default function ModelSelectionPage({ pushToast }) {
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         {[
           { id: "t5", label: "T5" },
-          { id: "bart", label: "BART" },
+          { id: "distilbart", label: "BART" },
         ].map((option) => (
           <button
             key={option.id}

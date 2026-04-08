@@ -32,6 +32,12 @@ const extractStateFromHtml = (html, scriptId) => {
   }
 };
 
+const normalizeModelValue = (model) => {
+  const value = String(model || "").toLowerCase();
+  if (value === "bart") return "distilbart";
+  return value;
+};
+
 export const api = {
   async uploadVideo(file) {
     const formData = new FormData();
@@ -55,7 +61,7 @@ export const api = {
 
   async startProcessing({ jobId, model, length }) {
     const formData = new URLSearchParams();
-    formData.append("model", model);
+    formData.append("model", normalizeModelValue(model));
     if (length) {
       formData.append("length", length);
     }
