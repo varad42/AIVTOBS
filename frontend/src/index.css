@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-300;
+}
+
+.dark body {
+  @apply bg-slate-950 text-slate-100;
+}
+
+.app-shell-bg {
+  background:
+    radial-gradient(50rem 30rem at 95% -10%, rgba(74, 161, 255, 0.15), transparent 50%),
+    radial-gradient(40rem 28rem at -10% 100%, rgba(29, 140, 255, 0.1), transparent 45%);
+}
+
+.dark .app-shell-bg {
+  background:
+    radial-gradient(45rem 28rem at 90% -5%, rgba(73, 133, 230, 0.22), transparent 48%),
+    radial-gradient(36rem 24rem at -5% 100%, rgba(31, 89, 180, 0.28), transparent 45%);
+}
