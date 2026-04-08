@@ -42,10 +42,14 @@ export const api = {
   },
 
   async startProcessing({ jobId, model, length }) {
-    const response = await client.post("/start-processing", {
-      job_id: jobId,
-      model,
-      length,
+    const formData = new URLSearchParams();
+    formData.append("model", model);
+    if (length) {
+      formData.append("length", length);
+    }
+
+    const response = await client.post(`/select_model/${jobId}`, formData, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
     return response.data;
   },
