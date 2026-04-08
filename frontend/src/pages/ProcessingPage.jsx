@@ -23,6 +23,11 @@ export default function ProcessingPage({ pushToast }) {
   }, [error, pushToast]);
 
   useEffect(() => {
+    if (stateLabel === "waiting_for_model") {
+      navigate(`/model/${jobId}`);
+      return;
+    }
+
     if (doneStates.has(stateLabel) || progress >= 100) {
       navigate(`/result/${jobId}`);
     }
