@@ -3,35 +3,18 @@
 {% block title %}Summary | AI Video Studio{% endblock %}
 
 {% block content %}
-<section class="content-panel">
-    <div class="section-header">
-        <div>
-            <p class="auth-eyebrow">Output</p>
-            <h1 class="section-title">Generated Summary</h1>
-            <p class="section-subtitle">Review the summary or generate a blog</p>
-        </div>
-        <div class="tag-row">
-            <span class="tag">Model: {{ model_name|upper }}</span>
-            <span class="tag">Video: {{ display_name }}</span>
-        </div>
-    </div>
-
-    <div class="text-content" style="margin-top: 22px;">{{ summary }}</div>
-
-    {% if timestamp_summary %}
-    <div style="margin-top: 28px;">
-        <div class="section-header" style="margin-bottom: 12px;">
-            <div>
-                <p class="auth-eyebrow">Timeline</p>
-                <h2 class="card-title">Timestamp Summary</h2>
-            </div>
-        </div>
-        <div class="text-content">{{ timestamp_summary }}</div>
-    </div>
-    {% endif %}
-
-    <div class="action-row" style="margin-top: 28px;">
-        <a class="btn-primary" href="/download_summary/{{ job_id }}">Download Summary</a>
-    </div>
-</section>
+<div id="reactPageRoot"></div>
+<script id="reactPageState" type="application/json">
+{{ {
+    "page":"summary",
+    "summary": summary,
+    "timestamp_summary": timestamp_summary,
+    "job_id": job_id,
+    "display_name": display_name,
+    "model_name": model_name
+} | tojson }}
+</script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages-react.js') }}"></script>
 {% endblock %}

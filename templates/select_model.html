@@ -3,35 +3,16 @@
 {% block title %}Select Model | AI Video Studio{% endblock %}
 
 {% block content %}
-<section class="two-column">
-    <div class="content-panel">
-        <p class="auth-eyebrow">Model selection</p>
-        <h1 class="section-title">Choose a summarization model</h1>
-        <p class="section-subtitle select-model-subtitle">Video name: <strong>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</strong></p>
-        <p class="section-subtitle">Pick the model you want for your video.Once selected, click generate summary.</p>
-
-        <form method="POST" class="surface-form">
-            <div>
-                <h2 class="card-title">Summary Model</h2>
-            </div>
-            <div class="choice-grid">
-                {% for option in summary_model_options %}
-                <label class="choice-card {% if not option.enabled %}choice-card-disabled{% endif %}">
-                    <input type="radio" name="model" value="{{ option.value }}" {% if option.checked %}checked{% endif %} {% if not option.enabled %}disabled{% endif %}>
-                    <span>
-                        <strong>{{ option.label }}</strong>
-                        <span class="card-copy">{{ option.description }}</span>
-                    </span>
-                </label>
-                {% endfor %}
-            </div>
-
-            <div class="button-row">
-                <button type="submit" class="btn-primary">Generate Summary</button>
-                <a href="/cleaned_transcript/{{ job.job_id }}" class="btn-secondary">View Cleaned Transcript</a>
-                <a href="/dashboard?job_id={{ job.job_id }}" class="btn-secondary">Back to dashboard</a>
-            </div>
-        </form>
-    </div>
-</section>
+<div id="reactPageRoot"></div>
+<script id="reactPageState" type="application/json">
+{{ {
+    "page":"select_model",
+    "job_id": (job.get("job_id") or ""),
+    "job_title": (job.get("display_name") or job.get("job_slug", job.get("job_id"))),
+    "summary_model_options": summary_model_options
+} | tojson }}
+</script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages-react.js') }}"></script>
 {% endblock %}

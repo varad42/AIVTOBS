@@ -3,62 +3,9 @@
 {% block title %}Upload | AI Video Studio{% endblock %}
 
 {% block content %}
-<section class="two-column">
-    <div class="content-panel">
-        <div class="section-header">
-            <div>
-                <p class="auth-eyebrow">Input</p>
-                <h1 class="section-title">Upload Video</h1>
-                <p class="section-subtitle">Choose a file or paste a public video URL. Either option will start the same processing flow.</p>
-            </div>
-        </div>
-
-        <form method="POST" enctype="multipart/form-data" class="surface-form" id="uploadForm">
-            <label class="surface-label">
-                Video file
-                <span class="file-input-shell">
-                    <input type="file" name="video">
-                </span>
-            </label>
-
-            <label class="surface-label">
-                Video URL
-                <input class="surface-input" name="video_url" placeholder="https://example.com/video.mp4 or https://www.youtube.com/watch?v=...">
-            </label>
-
-            <div class="button-row">
-                <button type="submit" class="btn-primary" id="uploadButton">Process video</button>
-                <a href="/dashboard" class="btn-secondary">Back to dashboard</a>
-            </div>
-        </form>
-    </div>
-
-    <aside class="stat-panel">
-        <div class="stat-block">
-            <span class="auth-eyebrow">How it works</span>
-            <strong>1. Upload source</strong>
-            <p class="card-copy">You can provide either a local file or a public video URL.</p>
-        </div>
-        <div class="stat-block">
-            <strong>2. Wait for transcript</strong>
-            <p class="card-copy">The job moves through download, extraction, Faster-Whisper transcription, and model selection.</p>
-        </div>
-        <div class="stat-block">
-            <strong>3. Export content</strong>
-            <p class="card-copy">Open the generated summary, create the blog article, and download either as PDF.</p>
-        </div>
-    </aside>
-</section>
-
-<script>
-    const uploadForm = document.getElementById("uploadForm");
-    const uploadButton = document.getElementById("uploadButton");
-
-    if (uploadForm && uploadButton) {
-        uploadForm.addEventListener("submit", function () {
-            uploadButton.disabled = true;
-            uploadButton.textContent = "Starting...";
-        });
-    }
-</script>
+<div id="reactPageRoot"></div>
+<script id="reactPageState" type="application/json">{{ {"page":"upload"} | tojson }}</script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages-react.js') }}"></script>
 {% endblock %}

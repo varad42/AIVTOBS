@@ -3,19 +3,16 @@
 {% block title %}Cleaned Transcript | AI Video Studio{% endblock %}
 
 {% block content %}
-<section class="content-panel">
-    <div class="section-header">
-        <div>
-            <p class="auth-eyebrow">Transcript</p>
-            <h1 class="section-title">Cleaned Transcript</h1>
-            <p class="section-subtitle">Video name: <strong>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</strong></p>
-        </div>
-    </div>
-
-    <div class="text-content" style="margin-top: 22px;">{{ cleaned_transcript }}</div>
-
-    <div class="action-row" style="margin-top: 28px;">
-        <a class="btn-secondary" href="/select_model/{{ job.job_id }}">Back to Select Model</a>
-    </div>
-</section>
+<div id="reactPageRoot"></div>
+<script id="reactPageState" type="application/json">
+{{ {
+    "page":"cleaned_transcript",
+    "job_id": (job.get("job_id") or ""),
+    "job_title": (job.get("display_name") or job.get("job_slug", job.get("job_id"))),
+    "cleaned_transcript": cleaned_transcript
+} | tojson }}
+</script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages-react.js') }}"></script>
 {% endblock %}

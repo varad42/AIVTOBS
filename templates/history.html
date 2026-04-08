@@ -3,62 +3,26 @@
 {% block title %}History | AI Video Studio{% endblock %}
 
 {% block content %}
-<section class="table-panel">
-    <div class="section-header">
-        <div>
-            <p class="auth-eyebrow">Archive</p>
-            <h1 class="section-title">Your Video History</h1>
-            <p class="section-subtitle">Review status, model choices, and downloadable outputs for all previous jobs.</p>
-        </div>
-        <a href="/upload" class="btn-secondary">New upload</a>
-    </div>
-
-    <div class="table-wrap">
-        <table>
-            <tr>
-                <th>Video</th>
-                <th>Status</th>
-                <th>Transcription</th>
-                <th>Model</th>
-                <th>Summary</th>
-                <th>Blog</th>
-            </tr>
-
-            {% for job in jobs %}
-            <tr>
-                <td>{{ job.file }}</td>
-                <td><span class="status-pill">{{ job.status }}</span></td>
-                <td>{{ job.get("transcription_provider", "whisper") }}</td>
-                <td>{{ job.get("summary_model", "-") }}</td>
-                <td>
-                    {% if job.get("summary_file") %}
-                    <div class="chip-row">
-                        <a class="chip-button" href="/summary/{{ job.job_id }}">View</a>
-                        <a class="chip-button" href="/download_summary/{{ job.job_id }}">Download</a>
-                    </div>
-                    {% else %}
-                    <span class="meta-text">Pending</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if job.status == "blog_ready" %}
-                    <div class="chip-row">
-                        <a class="chip-button" href="/blog/{{ job.job_id }}">View</a>
-                        <a class="chip-button" href="/download_blog/{{ job.job_id }}">Download</a>
-                    </div>
-                    {% else %}
-                    <span class="meta-text">Pending</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="6">
-                    <div class="empty-state">No jobs yet. Upload your first video to start building summaries and blogs.</div>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-</section>
+<div id="reactPageRoot"></div>
+<script id="reactPageState" type="application/json">
+{
+  "page": "history",
+  "jobs": [
+    {% for job in jobs %}
+    {
+      "job_id": {{ (job.get("job_id") or "") | tojson }},
+      "file": {{ (job.get("file") or "") | tojson }},
+      "status": {{ (job.get("status") or "") | tojson }},
+      "transcription_provider": {{ (job.get("transcription_provider", "whisper")) | tojson }},
+      "summary_model": {{ (job.get("summary_model", "-")) | tojson }},
+      "summary_file": {{ (job.get("summary_file") or "") | tojson }},
+      "blog_file": {{ (job.get("blog_file") or "") | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages-react.js') }}"></script>
 {% endblock %}

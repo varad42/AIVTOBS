@@ -3,22 +3,17 @@
 {% block title %}Blog | AI Video Studio{% endblock %}
 
 {% block content %}
-<section class="content-panel">
-    <div class="section-header">
-        <div>
-            <p class="auth-eyebrow">Output</p>
-            <h1 class="section-title">Generated Blog</h1>
-        </div>
-        <div class="tag-row">
-            <span class="tag">Model: {{ model_name|upper }}</span>
-            <span class="tag">Video: {{ display_name }}</span>
-        </div>
-    </div>
-
-    <div class="text-content" style="margin-top: 22px;">{{ blog }}</div>
-
-    <div class="action-row" style="margin-top: 28px;">
-        <a class="btn-primary" href="/download_blog/{{ job_id }}">Download Blog</a>
-    </div>
-</section>
+<div id="reactPageRoot"></div>
+<script id="reactPageState" type="application/json">
+{{ {
+    "page":"blog",
+    "blog": blog,
+    "job_id": job_id,
+    "display_name": display_name,
+    "model_name": model_name
+} | tojson }}
+</script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages-react.js') }}"></script>
 {% endblock %}
