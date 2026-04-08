@@ -1331,6 +1331,7 @@ td {
     display: grid;
     gap: 26px;
     padding: 34px;
+    justify-items: center;
     border: 1px solid rgba(102, 145, 220, 0.12);
     background:
         radial-gradient(circle at top right, rgba(115, 185, 255, 0.22), transparent 28%),
@@ -1340,13 +1341,16 @@ td {
 
 .dashboard-hero-copy {
     max-width: 760px;
+    width: 100%;
     display: grid;
     gap: 16px;
+    justify-items: center;
+    text-align: center;
 }
 
 .dashboard-hero-ball-wrap {
     position: relative;
-    width: min(100%, 260px);
+    width: min(100%, 320px);
     aspect-ratio: 1;
     display: grid;
     place-items: center;
@@ -1365,7 +1369,7 @@ td {
 }
 
 .dashboard-hero-ball-canvas {
-    width: min(100%, 220px);
+    width: min(100%, 280px);
     aspect-ratio: 1;
     display: block;
     background: transparent;
@@ -1379,7 +1383,8 @@ td {
 
 .dashboard-hero-actions {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
+    width: 100%;
 }
 
 .dashboard-mode-pills {
@@ -1696,7 +1701,11 @@ td {
 
 @media (max-width: 480px) {
     .dashboard-hero-ball-wrap {
-        width: min(100%, 220px);
+        width: min(100%, 240px);
+    }
+
+    .dashboard-hero-ball-canvas {
+        width: min(100%, 210px);
     }
 
     .dashboard-stage-list,
