@@ -20,6 +20,18 @@ const extractJobIdFromResponseUrl = (responseUrl) => {
   }
 };
 
+const extractStateFromHtml = (html, scriptId) => {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const script = doc.getElementById(scriptId);
+    if (!script) return null;
+    return JSON.parse(script.textContent || "{}");
+  } catch {
+    return null;
+  }
+};
+
 export const api = {
   async uploadVideo(file) {
     const formData = new FormData();
@@ -55,13 +67,47 @@ export const api = {
   },
 
   async getStatus(jobId) {
-    const response = await client.get(`/status/${jobId}`);
-    return response.data;
+    const response = await client.get(`/dashboard?job_id=${encodeURIComponent(jobId)}`, {
+      responseType: "text",
+    });
+
+    const state = extractStateFromHtml(response.data, "dashboardInitialState");
+    const activeJob = state?.active_job || {};
+    const status = activeJob?.status || "processing";
+    const progress = Number(state?.active_progress || 0);
+
+    const logs = [
+      "Uploading video...",
+      "Extracting audio...",
+      "Transcribing...",
+      "Generating summary...",
+      "Generating blog...",
+    ];
+
+    return { status, progress, logs };
   },
 
   async getResult(jobId) {
-    const response = await client.get(`/result/${jobId}`);
-    return response.data;
+    const [summaryResponse, blogResponse] = await Promise.all([
+      client.get(`/summary/${encodeURIComponent(jobId)}`, { responseType: "text" }),
+      client.get(`/blog/${encodeURIComponent(jobId)}`, { responseType: "text" }).catch(() => ({ data: "" })),
+    ]);
+
+    const summaryState = extractStateFromHtml(summaryResponse.data, "reactPageState") || {};
+    const blogState = extractStateFromHtml(blogResponse.data, "reactPageState") || {};
+
+    return {
+      videoInfo: {
+        title: summaryState.display_name || blogState.display_name || `Job ${String(jobId).slice(0, 8)}`,
+        source: "processed",
+        thumbnail: "",
+      },
+      transcript: "",
+      summary: summaryState.summary || "",
+      blog: blogState.blog || "",
+      downloadSummaryPdfUrl: `${API_BASE_URL}/download_summary/${encodeURIComponent(jobId)}`,
+      downloadBlogPdfUrl: `${API_BASE_URL}/download_blog/${encodeURIComponent(jobId)}`,
+    };
   },
 };
 
