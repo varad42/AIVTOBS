@@ -1354,6 +1354,7 @@ td {
     aspect-ratio: 1;
     display: grid;
     place-items: center;
+    overflow: hidden;
     margin-top: 4px;
     border-radius: 32px;
     background:
@@ -1364,15 +1365,12 @@ td {
         0 24px 48px rgba(77, 112, 176, 0.12);
 }
 
-.dashboard-hero-ball-source {
-    display: none;
-}
-
-.dashboard-hero-ball-canvas {
+.dashboard-hero-ball-video {
     width: min(100%, 280px);
     aspect-ratio: 1;
     display: block;
-    background: transparent;
+    object-fit: cover;
+    border-radius: 999px;
     filter: drop-shadow(0 24px 44px rgba(59, 111, 198, 0.22));
 }
 
@@ -1704,7 +1702,7 @@ td {
         width: min(100%, 240px);
     }
 
-    .dashboard-hero-ball-canvas {
+    .dashboard-hero-ball-video {
         width: min(100%, 210px);
     }
 

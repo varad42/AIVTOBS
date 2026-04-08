@@ -80,8 +80,7 @@
                 <p class="auth-eyebrow">AI Video Studio</p>
                 <div class="dashboard-hero-ball-wrap" aria-hidden="true">
                     <video
-                        class="dashboard-hero-ball-source"
-                        id="dashboardHeroBallSource"
+                        class="dashboard-hero-ball-video"
                         autoplay
                         muted
                         loop
@@ -90,7 +89,6 @@
                     >
                         <source src="{{ url_for('static', filename='media/dashboard-ball.mp4') }}" type="video/mp4">
                     </video>
-                    <canvas class="dashboard-hero-ball-canvas" id="dashboardHeroBallCanvas"></canvas>
                 </div>
                 <p class="hero-copy dashboard-hero-subtitle">Drop in a local file or paste a YouTube link. The studio handles the pipeline and keeps the current job visible while it works.</p>
             </div>
@@ -286,7 +284,6 @@
         }
     };
 
-    attachBallCanvas("dashboardHeroBallSource", "dashboardHeroBallCanvas");
     attachBallCanvas("loginBallSource", "loginBallCanvas");
 </script>
 
