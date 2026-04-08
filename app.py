@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import threading
 import os
+from datetime import datetime, timezone
 from flask import Flask, render_template, session, redirect, request
 from config import SECRET_KEY
 from modules.model_select import model_bp
@@ -15,6 +16,35 @@ from auth.password_reset import password_reset_bp
 from auth.google_auth import google_auth_bp
 from modules.upload import upload_bp
 from modules.processing import processing_bp
+
+
+def _to_iso8601(value):
+
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.isoformat()
+
+    return str(value) if value is not None else ""
+
+
+def _serialize_job(job):
+
+    if not job:
+        return None
+
+    return {
+        "job_id": str(job.get("job_id", "")),
+        "job_slug": str(job.get("job_slug", "")),
+        "display_name": str(job.get("display_name", "")),
+        "status": str(job.get("status", "idle")),
+        "source_type": str(job.get("source_type", "")),
+        "youtube_video_id": str(job.get("youtube_video_id", "")),
+        "uploaded_at": _to_iso8601(job.get("uploaded_at")),
+        "queued_at": _to_iso8601(job.get("queued_at")),
+        "summary_file": bool(job.get("summary_file")),
+        "blog_file": bool(job.get("blog_file")),
+    }
 
 
 def create_app():
@@ -46,7 +76,8 @@ def create_app():
                 active_job=None,
                 active_progress=0,
                 active_status_label="Idle",
-                should_auto_refresh=False
+                should_auto_refresh=False,
+                dashboard_state=None
             )
 
         jobs = list(
@@ -137,6 +168,17 @@ def create_app():
             and active_job
             and active_job.get("status") in auto_refresh_statuses
         )
+        serialized_jobs = [_serialize_job(job) for job in jobs]
+        serialized_active_job = _serialize_job(active_job)
+        dashboard_state = {
+            "user_email": session["user"],
+            "jobs": serialized_jobs,
+            "summary_ready_count": summary_ready_count,
+            "blog_ready_count": blog_ready_count,
+            "active_job": serialized_active_job,
+            "active_progress": active_progress,
+            "active_status_label": active_status_label,
+        }
 
         return render_template(
             "dashboard.html",
@@ -148,7 +190,8 @@ def create_app():
             active_job=active_job,
             active_progress=active_progress,
             active_status_label=active_status_label,
-            should_auto_refresh=should_auto_refresh
+            should_auto_refresh=should_auto_refresh,
+            dashboard_state=dashboard_state
         )
 
     @app.route("/logout")

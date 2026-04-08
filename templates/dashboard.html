@@ -7,345 +7,143 @@
 <meta http-equiv="refresh" content="3">
 {% endif %}
 <div class="dashboard-stage">
-<section class="dashboard-shell dashboard-shell-modern {% if show_login %}login-locked{% endif %}">
-    <aside class="dashboard-sidebar panel dashboard-sidebar-modern" id="dashboardSidebar">
-        <div class="sidebar-header dashboard-sidebar-header">
-            <div>
-                <p class="auth-eyebrow">Workspace</p>
-                <h2 class="card-title">History</h2>
+    {% if show_login %}
+    <section class="dashboard-shell dashboard-shell-modern login-locked">
+        <div class="workspace-stack dashboard-workspace-modern">
+            <section class="content-panel dashboard-hero-panel">
+                <div class="dashboard-hero-copy">
+                    <p class="auth-eyebrow">AI Video Studio</p>
+                    <p class="hero-copy dashboard-hero-subtitle">Log in to access uploads, processing, and history.</p>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <div class="login-overlay">
+        <div class="login-overlay-inner">
+            <section class="auth-card">
+                <h1 class="auth-title">User Login</h1>
+
+                <form method="POST" action="/" class="auth-form">
+                    <div class="field-stack">
+                        <label class="pill-field">
+                            <span class="field-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                                    <circle cx="12" cy="8" r="4"></circle>
+                                </svg>
+                            </span>
+                            <input name="email" type="email" placeholder="Username or email" value="{{ email or '' }}" required>
+                        </label>
+
+                        <label class="pill-field trailing-icon">
+                            <input name="password" type="password" placeholder="Password" required>
+                            <span class="field-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="5" y="11" width="14" height="10" rx="2"></rect>
+                                    <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+                                    <circle cx="12" cy="16" r="1"></circle>
+                                </svg>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="auth-actions">
+                        <button type="submit" class="btn-primary" style="width: 100%;">Login</button>
+                    </div>
+
+                    <a href="/auth/google" class="btn-secondary" style="width: 100%;">Continue with Google</a>
+                </form>
+
+                <div class="auth-links">
+                    <a href="/forgot-password" class="ghost-link">Forgot password?</a>
+                    <a href="/register" class="ghost-link">Sign up</a>
+                </div>
+            </section>
+
+            <div class="login-ball-wrap" aria-hidden="true">
+                <video
+                    class="login-ball-source"
+                    id="loginBallSource"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="auto"
+                >
+                    <source src="{{ url_for('static', filename='media/login-ball.mp4') }}" type="video/mp4">
+                </video>
+                <canvas class="login-ball-canvas" id="loginBallCanvas"></canvas>
             </div>
         </div>
-
-        <div class="dashboard-sidebar-top">
-            <div class="account-card history-account-card dashboard-profile-card">
-                <div class="dashboard-profile-top">
-                    <div class="dashboard-avatar" aria-hidden="true">{{ (user_email or "u")[0]|upper }}</div>
-                    <div class="dashboard-profile-copy">
-                        <p class="auth-eyebrow">Signed in</p>
-                        <strong>{{ user_email }}</strong>
-                        <span class="meta-text">Studio workspace active</span>
-                    </div>
-                </div>
-                <a href="/logout" class="btn-secondary dashboard-sidebar-logout">Logout</a>
-            </div>
-
-            <a href="/dashboard?new_chat=1" class="btn-primary dashboard-new-chat">+ New Chat</a>
-        </div>
-
-        <div class="metric-list dashboard-sidebar-metrics">
-            <article class="metric">
-                <span>Summaries</span>
-                <strong>{{ summary_ready_count }}</strong>
-            </article>
-            <article class="metric">
-                <span>Blogs</span>
-                <strong>{{ blog_ready_count }}</strong>
-            </article>
-        </div>
-
-        <div class="dashboard-history-header">
-            <p class="auth-eyebrow">Recent Jobs</p>
-        </div>
-
-        <div class="sidebar-section sidebar-scroll dashboard-history-list">
-            {% for job in jobs %}
-            {% set job_status = job.get("status", "idle") %}
-            {% set job_source = "YouTube" if job.get("source_type") == "youtube" else "Upload" if job.get("source_type") == "local" else "External" %}
-            {% set job_date = (job.get("uploaded_at") or job.get("queued_at") or "")|string %}
-            <a href="/dashboard?job_id={{ job.job_id }}" class="history-job-link">
-                <article class="history-mini-card history-studio-card {% if active_job and active_job.job_id == job.job_id %}history-studio-card-active{% endif %}">
-                    <div class="history-studio-head">
-                        <span class="status-pill dashboard-status-chip status-{{ job_status }}">{{ job_status.replace("_", " ")|title }}</span>
-                        <span class="history-studio-source">{{ job_source }}</span>
-                    </div>
-                    <h3>{{ job.get("display_name") or job.get("job_slug", job.job_id) }}</h3>
-                    <div class="history-mini-meta history-studio-meta">
-                        <span>{{ job_date.replace("T", " ")[:16] if job_date else "Waiting for timestamp" }}</span>
-                        <span>ID {{ job.job_id[:8] }}</span>
-                    </div>
-                </article>
-            </a>
-            {% else %}
-            <div class="empty-state dashboard-history-empty">
-                <strong>No history yet</strong>
-                <span>Your uploads, summaries, and blogs will appear here as a running studio archive.</span>
-            </div>
-            {% endfor %}
-        </div>
-    </aside>
-
-    <div class="workspace-stack dashboard-workspace-modern">
-        <section class="content-panel dashboard-hero-panel" id="upload-studio">
-            <div class="dashboard-hero-copy">
-                <p class="auth-eyebrow">AI Video Studio</p>
-                <div class="dashboard-hero-ball-wrap" aria-hidden="true">
-                    <video
-                        class="dashboard-hero-ball-video"
-                        autoplay
-                        muted
-                        loop
-                        playsinline
-                        preload="auto"
-                    >
-                        <source src="{{ url_for('static', filename='media/dashboard-ball.mp4') }}" type="video/mp4">
-                    </video>
-                </div>
-                <p class="hero-copy dashboard-hero-subtitle">Drop in a local file or paste a YouTube link. The studio handles the pipeline and keeps the current job visible while it works.</p>
-            </div>
-
-            <div class="dashboard-hero-actions">
-                <div class="dashboard-mode-pills">
-                    <span class="tag dashboard-mode-pill">Local Upload</span>
-                    <span class="tag dashboard-mode-pill">YouTube Link</span>
-                </div>
-            </div>
-
-            <form method="POST" action="/upload" enctype="multipart/form-data" class="surface-form dashboard-composer" id="dashboardUploadForm">
-                <div class="dashboard-composer-grid">
-                    <label class="surface-label dashboard-dropzone">
-                        <span class="dashboard-dropzone-title">Upload a video file</span>
-                        <span class="dashboard-dropzone-copy">Choose MP4, MOV, or another video file from your device.</span>
-                        <span class="file-input-shell dashboard-file-shell">
-                            <input type="file" name="video">
-                        </span>
-                    </label>
-
-                    <label class="surface-label dashboard-url-block">
-                        <span class="dashboard-dropzone-title">Paste a YouTube URL</span>
-                        <span class="dashboard-dropzone-copy">Use any public YouTube link and let the worker fetch the transcript or video.</span>
-                        <input class="surface-input dashboard-url-input" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
-                    </label>
-                </div>
-
-                <div class="button-row dashboard-composer-actions">
-                    <button type="submit" class="btn-primary dashboard-process-button" id="dashboardUploadButton">Process Video</button>
-                    <a href="/dashboard?new_chat=1" class="btn-secondary">Reset Composer</a>
-                </div>
-            </form>
-        </section>
-
-        <section class="content-panel dashboard-current-panel">
-            <div class="section-header dashboard-current-header">
-                <div>
-                    <p class="auth-eyebrow">Current Job</p>
-                    <h2 class="section-title">Live Processing Studio</h2>
-                    <p class="section-subtitle">Track the selected job, see its current stage, and jump into the next available action.</p>
-                </div>
-                <span class="status-pill dashboard-status-chip status-{{ active_job.get('status', 'idle') if active_job else 'idle' }}">{{ active_status_label.replace("_", " ")|title }}</span>
-            </div>
-
-            {% if active_job %}
-            {% set current_source = "YouTube" if active_job.get("source_type") == "youtube" else "Upload" if active_job.get("source_type") == "local" else "External" %}
-            <div class="dashboard-current-grid">
-                <div class="dashboard-preview-shell">
-                    {% if active_job.get("source_type") == "youtube" and active_job.get("youtube_video_id") %}
-                    <img
-                        class="media-preview dashboard-current-preview"
-                        src="/youtube_thumbnail/{{ active_job.get('youtube_video_id') }}"
-                        alt="YouTube thumbnail preview"
-                    >
-                    {% else %}
-                    <div class="dashboard-preview-placeholder">
-                        <span class="dashboard-preview-icon" aria-hidden="true">&#9654;</span>
-                        <strong>{{ current_source }}</strong>
-                        <span>{{ active_job.get("display_name") or active_job.get("job_slug", active_job.job_id) }}</span>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="dashboard-current-copy">
-                    <div class="dashboard-current-meta">
-                        <span class="tag dashboard-mode-pill">{{ current_source }}</span>
-                        <span class="meta-text">Job ID {{ active_job.job_id[:8] }}</span>
-                    </div>
-                    <h3 class="card-title dashboard-current-title">{{ active_job.get("display_name") or active_job.get("job_slug", active_job.job_id) }}</h3>
-                    <p class="card-copy dashboard-current-text">The studio keeps this card focused on the selected job so you can upload, monitor progress, and open the next step without leaving the dashboard.</p>
-
-                    <div class="dashboard-progress-card">
-                        <div class="section-header dashboard-progress-header">
-                            <span class="card-title">Progress</span>
-                            <span class="dashboard-progress-value">{{ active_progress }}%</span>
-                        </div>
-                        <div class="pill-progress dashboard-progress-bar">
-                            <span style="width: {{ active_progress }}%;"></span>
-                        </div>
-                    </div>
-
-                    <div class="dashboard-stage-list">
-                        <div class="dashboard-stage-item {% if active_progress >= 15 %}is-complete{% endif %}">Uploaded</div>
-                        <div class="dashboard-stage-item {% if active_progress >= 20 %}is-complete{% endif %}">Downloaded</div>
-                        <div class="dashboard-stage-item {% if active_progress >= 60 %}is-complete{% endif %}">Transcribed</div>
-                        <div class="dashboard-stage-item {% if active_progress >= 80 %}is-complete{% endif %}">Ready for model</div>
-                        <div class="dashboard-stage-item {% if active_progress >= 100 %}is-complete{% endif %}">Complete</div>
-                    </div>
-
-                    <div class="action-row dashboard-action-dock">
-                        {% if active_job.status == "waiting_for_model" %}
-                        <a class="btn-primary" href="/select_model/{{ active_job.job_id }}">Select Model</a>
-                        {% endif %}
-
-                        {% if active_job.get("summary_file") %}
-                        <a class="btn-secondary" href="/summary/{{ active_job.job_id }}">View Summary</a>
-                        {% endif %}
-
-                        {% if active_job.get("summary_file") and not active_job.get("blog_file") and active_job.status != "blog_requested" %}
-                        <a class="btn-secondary" href="/generate_blog/{{ active_job.job_id }}">Generate Blog</a>
-                        {% endif %}
-
-                        {% if active_job.get("blog_file") %}
-                        <a class="btn-secondary" href="/blog/{{ active_job.job_id }}">View Blog</a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <div class="dashboard-empty-studio">
-                <div class="dashboard-empty-visual" aria-hidden="true">
-                    <span>&#9711;</span>
-                    <span>&#9654;</span>
-                    <span>&#10010;</span>
-                </div>
-                <div class="dashboard-empty-copy">
-                    <p class="auth-eyebrow">Ready</p>
-                    <h3 class="card-title">Start a new upload session</h3>
-                    <p class="section-subtitle">Your composer is reset and ready. Add a file or YouTube URL above to begin a fresh job.</p>
-                </div>
-            </div>
-            {% endif %}
-        </section>
     </div>
-</section>
 
-<script>
-    const dashboardUploadForm = document.getElementById("dashboardUploadForm");
-    const dashboardUploadButton = document.getElementById("dashboardUploadButton");
+    <script>
+        const attachBallCanvas = function (videoId, canvasId) {
+            const ballVideo = document.getElementById(videoId);
+            const ballCanvas = document.getElementById(canvasId);
 
-    if (dashboardUploadForm && dashboardUploadButton) {
-        dashboardUploadForm.addEventListener("submit", function () {
-            dashboardUploadButton.disabled = true;
-            dashboardUploadButton.textContent = "Starting...";
-        });
-    }
-
-    const attachBallCanvas = function (videoId, canvasId) {
-        const ballVideo = document.getElementById(videoId);
-        const ballCanvas = document.getElementById(canvasId);
-
-        if (!ballVideo || !ballCanvas) {
-            return;
-        }
-
-        const context = ballCanvas.getContext("2d", { willReadFrequently: true });
-
-        const drawBallFrame = function () {
-            if (!context || ballVideo.readyState < 2) {
-                requestAnimationFrame(drawBallFrame);
+            if (!ballVideo || !ballCanvas) {
                 return;
             }
 
-            const width = ballVideo.videoWidth || 320;
-            const height = ballVideo.videoHeight || 320;
+            const context = ballCanvas.getContext("2d", { willReadFrequently: true });
 
-            if (ballCanvas.width !== width || ballCanvas.height !== height) {
-                ballCanvas.width = width;
-                ballCanvas.height = height;
-            }
-
-            context.clearRect(0, 0, width, height);
-            context.drawImage(ballVideo, 0, 0, width, height);
-
-            const frame = context.getImageData(0, 0, width, height);
-            const pixels = frame.data;
-
-            for (let index = 0; index < pixels.length; index += 4) {
-                const red = pixels[index];
-                const green = pixels[index + 1];
-                const blue = pixels[index + 2];
-                const alpha = pixels[index + 3];
-                const brightness = red + green + blue;
-
-                if (brightness < 70) {
-                    pixels[index + 3] = 0;
-                } else if (brightness < 130) {
-                    pixels[index + 3] = Math.round(alpha * 0.45);
+            const drawBallFrame = function () {
+                if (!context || ballVideo.readyState < 2) {
+                    requestAnimationFrame(drawBallFrame);
+                    return;
                 }
-            }
 
-            context.putImageData(frame, 0, 0);
-            requestAnimationFrame(drawBallFrame);
+                const width = ballVideo.videoWidth || 320;
+                const height = ballVideo.videoHeight || 320;
+
+                if (ballCanvas.width !== width || ballCanvas.height !== height) {
+                    ballCanvas.width = width;
+                    ballCanvas.height = height;
+                }
+
+                context.clearRect(0, 0, width, height);
+                context.drawImage(ballVideo, 0, 0, width, height);
+
+                const frame = context.getImageData(0, 0, width, height);
+                const pixels = frame.data;
+
+                for (let index = 0; index < pixels.length; index += 4) {
+                    const red = pixels[index];
+                    const green = pixels[index + 1];
+                    const blue = pixels[index + 2];
+                    const alpha = pixels[index + 3];
+                    const brightness = red + green + blue;
+
+                    if (brightness < 70) {
+                        pixels[index + 3] = 0;
+                    } else if (brightness < 130) {
+                        pixels[index + 3] = Math.round(alpha * 0.45);
+                    }
+                }
+
+                context.putImageData(frame, 0, 0);
+                requestAnimationFrame(drawBallFrame);
+            };
+
+            ballVideo.addEventListener("play", function () {
+                requestAnimationFrame(drawBallFrame);
+            });
+
+            if (!ballVideo.paused) {
+                requestAnimationFrame(drawBallFrame);
+            }
         };
 
-        ballVideo.addEventListener("play", function () {
-            requestAnimationFrame(drawBallFrame);
-        });
-
-        if (!ballVideo.paused) {
-            requestAnimationFrame(drawBallFrame);
-        }
-    };
-
-    attachBallCanvas("loginBallSource", "loginBallCanvas");
-</script>
-
-{% if show_login %}
-<div class="login-overlay">
-    <div class="login-overlay-inner">
-        <section class="auth-card">
-            <h1 class="auth-title">User Login</h1>
-
-            <form method="POST" action="/" class="auth-form">
-                <div class="field-stack">
-                    <label class="pill-field">
-                        <span class="field-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21a8 8 0 0 0-16 0"></path>
-                                <circle cx="12" cy="8" r="4"></circle>
-                            </svg>
-                        </span>
-                        <input name="email" type="email" placeholder="Username or email" value="{{ email or '' }}" required>
-                    </label>
-
-                    <label class="pill-field trailing-icon">
-                        <input name="password" type="password" placeholder="Password" required>
-                        <span class="field-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="5" y="11" width="14" height="10" rx="2"></rect>
-                                <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
-                                <circle cx="12" cy="16" r="1"></circle>
-                            </svg>
-                        </span>
-                    </label>
-                </div>
-
-                <div class="auth-actions">
-                    <button type="submit" class="btn-primary" style="width: 100%;">Login</button>
-                </div>
-
-                <a href="/auth/google" class="btn-secondary" style="width: 100%;">Continue with Google</a>
-            </form>
-
-            <div class="auth-links">
-                <a href="/forgot-password" class="ghost-link">Forgot password?</a>
-                <a href="/register" class="ghost-link">Sign up</a>
-            </div>
-        </section>
-
-        <div class="login-ball-wrap" aria-hidden="true">
-            <video
-                class="login-ball-source"
-                id="loginBallSource"
-                autoplay
-                muted
-                loop
-                playsinline
-                preload="auto"
-            >
-                <source src="{{ url_for('static', filename='media/login-ball.mp4') }}" type="video/mp4">
-            </video>
-            <canvas class="login-ball-canvas" id="loginBallCanvas"></canvas>
-        </div>
-    </div>
-</div>
-{% endif %}
+        attachBallCanvas("loginBallSource", "loginBallCanvas");
+    </script>
+    {% else %}
+    <div id="dashboardReactRoot"></div>
+    <script id="dashboardInitialState" type="application/json">{{ dashboard_state | tojson }}</script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard-react.js') }}"></script>
+    {% endif %}
 </div>
 {% endblock %}
