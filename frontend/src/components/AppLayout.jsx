@@ -16,7 +16,8 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="app-shell-bg min-h-screen transition-colors duration-300">
-      <div className="mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 gap-4 px-4 py-4 md:grid-cols-[260px_1fr]">
+      <div className={`mx-auto min-h-screen w-full max-w-7xl gap-4 px-4 py-4 ${authenticated ? "grid grid-cols-1 md:grid-cols-[260px_1fr]" : "flex items-start justify-center"}`}>
+        {authenticated ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-card dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex flex-col">
@@ -39,7 +40,8 @@ export default function AppLayout({ children }) {
           </div>
           <HistorySidebar />
         </div>
-        <main className="min-h-[85vh] rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-card backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+        ) : null}
+        <main className={`min-h-[85vh] rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-card backdrop-blur dark:border-slate-800 dark:bg-slate-900/70 ${authenticated ? "" : "w-full max-w-2xl"}`}>
           {children}
         </main>
       </div>
