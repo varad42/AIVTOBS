@@ -67,27 +67,29 @@ export default function ResultPage({ pushToast }) {
   return (
     <div className="space-y-4">
       <ResultSections result={result} onToast={pushToast} />
-      {result?.summary && !result?.blog ? (
+      <div className="flex flex-wrap gap-3">
+        {result?.summary && !result?.blog ? (
+          <button
+            onClick={handleGenerateBlog}
+            disabled={generatingBlog}
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+          >
+            {generatingBlog ? "Starting blog generation..." : "Generate Blog"}
+          </button>
+        ) : null}
         <button
-          onClick={handleGenerateBlog}
-          disabled={generatingBlog}
-          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+          onClick={() => navigate(`/?job_id=${encodeURIComponent(jobId)}`)}
+          className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
         >
-          {generatingBlog ? "Starting blog generation..." : "Generate Blog"}
+          Back to Dashboard
         </button>
-      ) : null}
-      <button
-        onClick={() => navigate(`/?job_id=${encodeURIComponent(jobId)}`)}
-        className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-      >
-        Back to Dashboard
-      </button>
-      <button
-        onClick={() => navigate("/?new_chat=1")}
-        className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
-      >
-        New Video
-      </button>
+        <button
+          onClick={() => navigate("/?new_chat=1")}
+          className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+        >
+          New Video
+        </button>
+      </div>
     </div>
   );
 }
