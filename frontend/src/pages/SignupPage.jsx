@@ -18,8 +18,26 @@ export default function SignupPage() {
 
     try {
       const result = await api.signup({ email, password });
+      const flashes = Array.isArray(result.flashes) ? result.flashes : [];
+      const successMessage = flashes.find((flash) =>
+        String(flash?.category || "").toLowerCase() === "success" ||
+        String(flash?.message || "").toLowerCase().includes("registration successful")
+      );
+      const errorMessage = flashes.find((flash) =>
+        String(flash?.category || "").toLowerCase() === "error"
+      );
+
+      if (errorMessage) {
+        throw new Error(errorMessage.message || "Signup failed. Please try again.");
+      }
+
+      if (successMessage) {
+        navigate("/login");
+        return;
+      }
+
       if (!result.authenticated) {
-        throw new Error(result.flashes?.[0]?.message || "Signup failed. Please try again.");
+        throw new Error("Signup failed. Please try again.");
       }
 
       await refreshDashboard();
