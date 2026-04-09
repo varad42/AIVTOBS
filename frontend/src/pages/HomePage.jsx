@@ -134,10 +134,10 @@ export default function HomePage({ pushToast }) {
     }
   };
 
-  const handleResetComposer = () => {
-    setComposerResetToken((value) => value + 1);
+  const handleNewChat = () => {
+    setSearchParams({ new_chat: "1" });
     setLogs([]);
-    pushToast("Composer reset.");
+    pushToast("New chat started.");
   };
 
   if (dashboardLoading && !dashboard) {
@@ -153,16 +153,10 @@ export default function HomePage({ pushToast }) {
           The new frontend now works with the existing Flask session. Sign in first, then upload a file or paste a YouTube URL.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            to="/login"
-            className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
-          >
+          <Link to="/login" className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
             Login
           </Link>
-          <Link
-            to="/signup"
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
+          <Link to="/signup" className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
             Create account
           </Link>
         </div>
@@ -181,10 +175,10 @@ export default function HomePage({ pushToast }) {
           </div>
           <button
             type="button"
-            onClick={handleResetComposer}
-            className="rounded-full bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400"
+            onClick={handleNewChat}
+            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
           >
-            ↻
+            New Chat
           </button>
         </div>
       </section>
