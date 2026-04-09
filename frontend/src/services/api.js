@@ -32,6 +32,17 @@ const extractStateFromHtml = (html, scriptId) => {
   }
 };
 
+const extractJobIdFromHtml = (html) => {
+  if (!html) return "";
+
+  const dashboardState = extractStateFromHtml(html, "dashboardInitialState");
+  const fromState = dashboardState?.active_job?.job_id || "";
+  if (fromState) return fromState;
+
+  const match = String(html).match(/job_id=([a-f0-9-]{8,})/i);
+  return match?.[1] || "";
+};
+
 const normalizeModelValue = (model) => {
   const value = String(model || "").toLowerCase();
   if (value === "bart") return "distilbart";
@@ -46,7 +57,8 @@ export const api = {
       headers: { "Content-Type": "multipart/form-data" },
     });
     const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
-    return { ...response.data, jobId: redirectJobId || extractJobId(response.data) };
+    const htmlJobId = extractJobIdFromHtml(response?.data);
+    return { ...response.data, jobId: redirectJobId || htmlJobId || extractJobId(response.data) };
   },
 
   async processYoutube(videoUrl) {
@@ -56,7 +68,8 @@ export const api = {
       headers: { "Content-Type": "multipart/form-data" },
     });
     const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
-    return { ...response.data, jobId: redirectJobId || extractJobId(response.data) };
+    const htmlJobId = extractJobIdFromHtml(response?.data);
+    return { ...response.data, jobId: redirectJobId || htmlJobId || extractJobId(response.data) };
   },
 
   async startProcessing({ jobId, model, length }) {
