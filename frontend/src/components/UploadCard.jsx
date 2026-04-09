@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import api from "../services/api";
+import api, { API_BASE_URL } from "../services/api";
 
 export default function UploadCard({ onSubmit, loading, resetToken = 0 }) {
   const [videoUrl, setVideoUrl] = useState("");
@@ -18,6 +18,10 @@ export default function UploadCard({ onSubmit, loading, resetToken = 0 }) {
   const process = () => {
     onSubmit({ file, videoUrl: videoUrl.trim() });
   };
+
+  const thumbnailSrc = preview?.thumbnail_url
+    ? `${API_BASE_URL}${preview.thumbnail_url.startsWith("/") ? "" : "/"}${preview.thumbnail_url}`
+    : "";
 
   useEffect(() => {
     if (!videoUrl.trim()) {
@@ -102,8 +106,8 @@ export default function UploadCard({ onSubmit, loading, resetToken = 0 }) {
         />
         {preview?.title ? (
           <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
-            {preview.thumbnail_url ? (
-              <img src={preview.thumbnail_url} alt={preview.title} className="h-16 w-24 rounded-lg object-cover" />
+            {thumbnailSrc ? (
+              <img src={thumbnailSrc} alt={preview.title} className="h-16 w-24 rounded-lg object-cover" />
             ) : null}
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{preview.title}</p>
