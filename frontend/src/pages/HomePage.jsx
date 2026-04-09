@@ -147,13 +147,11 @@ export default function HomePage({ pushToast }) {
   if (!authenticated) {
     return (
       <section className="flex min-h-[88vh] flex-col items-center justify-start px-4 pt-6 pb-10 sm:pt-8">
-        <div className="mb-6 text-center">
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
-            AI Video Summarizer &amp; Blog Generator
-          </h1>
-        </div>
         <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200/80 bg-white/88 px-14 py-20 text-center shadow-[0_28px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/88 sm:px-20 sm:py-24">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">Log in</h1>
+          <h1 className="font-serif text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
+            AI Video Summarizer to Blog Generator
+          </h1>
+          <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">Log in</h2>
           <p className="mt-3 text-base text-slate-500 dark:text-slate-400 sm:text-lg">New user? Create your account first.</p>
           <div className="mt-12 grid gap-5 sm:grid-cols-2">
           <Link to="/login" className="rounded-2xl bg-brand-600 px-6 py-4 text-base font-semibold text-white hover:bg-brand-700">
