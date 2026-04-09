@@ -147,7 +147,7 @@ export default function HomePage({ pushToast }) {
   if (!authenticated) {
     return (
       <section className="flex min-h-[68vh] items-center justify-center px-4 py-8">
-        <div className="w-full max-w-sm rounded-3xl border border-slate-200/80 bg-white/85 px-6 py-7 text-center shadow-[0_20px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/85">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/85 px-8 py-10 text-center shadow-[0_20px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/85">
           <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Log in</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">New user? Create your account first.</p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
