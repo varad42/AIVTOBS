@@ -134,17 +134,6 @@ export default function HomePage({ pushToast }) {
     }
   };
 
-  const handleNewChat = async () => {
-    setSearchParams({ new_chat: "1" });
-    setLogs([]);
-    try {
-      await refreshDashboard({ newChat: true });
-      pushToast("New chat started.");
-    } catch (error) {
-      pushToast(error?.message || "Could not start a new chat.", "error");
-    }
-  };
-
   const handleResetComposer = () => {
     setComposerResetToken((value) => value + 1);
     setLogs([]);
@@ -190,22 +179,13 @@ export default function HomePage({ pushToast }) {
               AI Video Summarizer & Blog Generator
             </h2>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={handleNewChat}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-            >
-              New Chat
-            </button>
-            <button
-              type="button"
-              onClick={handleResetComposer}
-              className="rounded-full border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-            >
-              ↻
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleResetComposer}
+            className="rounded-full bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400"
+          >
+            ↻
+          </button>
         </div>
       </section>
 
@@ -262,7 +242,7 @@ export default function HomePage({ pushToast }) {
         </section>
       ) : null}
 
-      <StatusFeed logs={logs} />
+      {logs.length ? <StatusFeed logs={logs} /> : null}
     </div>
   );
 }
