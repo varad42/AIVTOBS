@@ -1,15 +1,30 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api, { API_BASE_URL } from "../services/api";
 import { useDashboardState } from "../context/DashboardContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { refreshDashboard } = useDashboardState();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    const resetSuccess = searchParams.get("reset") === "success";
+    const signupSuccess = searchParams.get("signup") === "success";
+
+    if (resetSuccess) {
+      setNotice("Password updated successfully. You can now log in with your new password.");
+    } else if (signupSuccess) {
+      setNotice("Registration successful. You can log in now.");
+    } else {
+      setNotice("");
+    }
+  }, [searchParams]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -36,6 +51,11 @@ export default function LoginPage() {
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
       <h1 className="text-2xl font-bold">Welcome back</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Sign in to continue </p>
+      {notice ? (
+        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100">
+          {notice}
+        </div>
+      ) : null}
 
       <form onSubmit={submit} className="mt-5 space-y-3">
         <input

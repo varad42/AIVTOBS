@@ -25,7 +25,7 @@ export default function SignupPage() {
         throw new Error(errorMessage.message || "Signup failed. Please try again.");
       }
 
-      navigate("/login");
+      navigate("/login?signup=success");
     } catch (submitError) {
       setError(submitError.message || "Signup failed.");
     } finally {

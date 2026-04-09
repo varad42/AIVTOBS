@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { API_BASE_URL } from "../services/api";
+import { API_BASE_URL, extractFlashesFromHtml, extractStateFromHtml } from "../services/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -28,12 +28,20 @@ export default function ForgotPasswordPage() {
       });
 
       const html = await response.text();
-      const match = html.match(/https?:\/\/[^\s"'<>]+/);
-      if (match?.[0]) {
-        setResetLink(match[0]);
+      const state = extractStateFromHtml(html, "reactPageState") || {};
+      const flashes = extractFlashesFromHtml(html);
+      const htmlResetLink = state.reset_link || "";
+
+      if (htmlResetLink) {
+        setResetLink(htmlResetLink);
       }
 
-      if (!response.ok) {
+      const errorFlash = flashes.find((flash) => String(flash?.category || "").toLowerCase() === "error");
+      if (errorFlash) {
+        throw new Error(errorFlash.message || "Could not create reset link.");
+      }
+
+      if (!htmlResetLink) {
         throw new Error("Could not create reset link.");
       }
     } catch (submitError) {

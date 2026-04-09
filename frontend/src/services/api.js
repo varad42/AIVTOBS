@@ -36,7 +36,7 @@ export const extractStateFromHtml = (html, scriptId) => {
   }
 };
 
-const extractFlashesFromHtml = (html) => {
+export const extractFlashesFromHtml = (html) => {
   try {
     const doc = parseHtml(html);
     return [...doc.querySelectorAll(".flash")].map((element) => ({
