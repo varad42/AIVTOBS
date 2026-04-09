@@ -20,11 +20,8 @@ export default function AppLayout({ children }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-card dark:border-slate-800 dark:bg-slate-900/80">
             <div>
-              <Link to="/" className="text-sm font-semibold">
-                AI Studio
-              </Link>
               {authenticated && dashboard?.user_email ? (
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{dashboard.user_email}</p>
+                <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{dashboard.user_email}</p>
               ) : null}
             </div>
             <div className="flex items-center gap-2">

@@ -201,8 +201,7 @@ export default function HomePage({ pushToast }) {
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Workspace</p>
-            <h2 className="mt-1 text-lg font-semibold">Composer Controls</h2>
+            <h2 className="text-lg font-semibold">AI Video Summarizer & Blog Generator</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             <button

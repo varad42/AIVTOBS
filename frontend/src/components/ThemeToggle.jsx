@@ -22,7 +22,7 @@ export default function ThemeToggle() {
       onClick={() => setDark((v) => !v)}
       className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
     >
-      {dark ? "Light Mode" : "Dark Mode"}
+      {dark ? "☀️" : "🌙"}
     </button>
   );
 }
