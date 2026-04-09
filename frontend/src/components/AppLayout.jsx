@@ -24,7 +24,7 @@ export default function AppLayout({ children }) {
                 <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{dashboard.user_email}</p>
               ) : null}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="mt-2 flex items-center gap-2">
               <ThemeToggle />
               {authenticated ? (
                 <button

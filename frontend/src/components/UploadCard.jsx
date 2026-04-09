@@ -57,7 +57,7 @@ export default function UploadCard({ onSubmit, loading, resetToken = 0 }) {
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-sm text-slate-500 dark:text-slate-400">Upload a file or paste a YouTube URL to start.</p>
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Upload a file or paste a YouTube URL to start.</p>
 
       <div
         onDragOver={(e) => {

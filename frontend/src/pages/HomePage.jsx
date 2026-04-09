@@ -199,9 +199,11 @@ export default function HomePage({ pushToast }) {
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">AI Video Summarizer & Blog Generator</h2>
+            <h2 className="text-2xl font-extrabold italic tracking-tight text-slate-900 dark:text-slate-100">
+              AI Video Summarizer & Blog Generator
+            </h2>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -214,9 +216,9 @@ export default function HomePage({ pushToast }) {
             <button
               type="button"
               onClick={handleResetComposer}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="rounded-full border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              Reset Composer
+              ↻
             </button>
           </div>
         </div>
@@ -228,7 +230,6 @@ export default function HomePage({ pushToast }) {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Current Job</p>
               <h2 className="mt-1 text-xl font-semibold">{activeJob.display_name || activeJob.job_slug || activeJob.job_id}</h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {activeJob.source_type || "video"} - {String(activeJob.status || "idle").replaceAll("_", " ")}
