@@ -43,6 +43,20 @@ const extractJobIdFromHtml = (html) => {
   return match?.[1] || "";
 };
 
+const isLikelyLoginPageHtml = (html) => {
+  const text = String(html || "").toLowerCase();
+  return (
+    text.includes("user login") ||
+    text.includes("name=\"password\"") ||
+    text.includes("continue with google")
+  );
+};
+
+const isLikelyDashboardHtml = (html) => {
+  const text = String(html || "").toLowerCase();
+  return text.includes("dashboardreactroot") || text.includes("dashboardinitialstate");
+};
+
 const normalizeModelValue = (model) => {
   const value = String(model || "").toLowerCase();
   if (value === "bart") return "distilbart";
@@ -50,6 +64,26 @@ const normalizeModelValue = (model) => {
 };
 
 export const api = {
+  async login({ email, password }) {
+    const formData = new URLSearchParams();
+    formData.append("email", email);
+    formData.append("password", password);
+
+    const response = await client.post("/", formData, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      responseType: "text",
+    });
+
+    const html = response?.data || "";
+    const authenticated = isLikelyDashboardHtml(html) && !isLikelyLoginPageHtml(html);
+
+    if (!authenticated) {
+      throw new Error("Invalid login or session not created. Please try again.");
+    }
+
+    return { authenticated: true };
+  },
+
   async uploadVideo(file) {
     const formData = new FormData();
     formData.append("video", file);
@@ -58,7 +92,11 @@ export const api = {
     });
     const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
     const htmlJobId = extractJobIdFromHtml(response?.data);
-    return { ...response.data, jobId: redirectJobId || htmlJobId || extractJobId(response.data) };
+    const jobId = redirectJobId || htmlJobId || extractJobId(response.data);
+    if (!jobId && isLikelyLoginPageHtml(response?.data)) {
+      throw new Error("No active backend session. Please login first.");
+    }
+    return { ...response.data, jobId };
   },
 
   async processYoutube(videoUrl) {
@@ -69,7 +107,11 @@ export const api = {
     });
     const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
     const htmlJobId = extractJobIdFromHtml(response?.data);
-    return { ...response.data, jobId: redirectJobId || htmlJobId || extractJobId(response.data) };
+    const jobId = redirectJobId || htmlJobId || extractJobId(response.data);
+    if (!jobId && isLikelyLoginPageHtml(response?.data)) {
+      throw new Error("No active backend session. Please login first.");
+    }
+    return { ...response.data, jobId };
   },
 
   async startProcessing({ jobId, model, length }) {
