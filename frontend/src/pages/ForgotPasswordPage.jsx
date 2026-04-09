@@ -8,6 +8,19 @@ export default function ForgotPasswordPage() {
   const [resetLink, setResetLink] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const normalizeResetPath = (resetLinkValue) => {
+    if (!resetLinkValue) return "";
+
+    try {
+      const parsed = new URL(resetLinkValue, window.location.origin);
+      const token = parsed.pathname.split("/").filter(Boolean).pop() || "";
+      return token ? `/reset-password/${token}` : "";
+    } catch {
+      const match = String(resetLinkValue).match(/\/reset-password\/([^/?#]+)/i);
+      return match?.[1] ? `/reset-password/${match[1]}` : "";
+    }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -30,7 +43,7 @@ export default function ForgotPasswordPage() {
       const html = await response.text();
       const state = extractStateFromHtml(html, "reactPageState") || {};
       const flashes = extractFlashesFromHtml(html);
-      const htmlResetLink = state.reset_link || "";
+      const htmlResetLink = normalizeResetPath(state.reset_link || "");
 
       if (htmlResetLink) {
         setResetLink(htmlResetLink);
@@ -78,9 +91,9 @@ export default function ForgotPasswordPage() {
       {resetLink ? (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100">
           <p className="font-semibold">Reset link created</p>
-          <a href={resetLink} className="mt-2 block break-all underline">
+          <Link to={resetLink} className="mt-2 block break-all underline">
             {resetLink}
-          </a>
+          </Link>
         </div>
       ) : null}
 
