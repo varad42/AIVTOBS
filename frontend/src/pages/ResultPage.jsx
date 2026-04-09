@@ -77,7 +77,13 @@ export default function ResultPage({ pushToast }) {
         </button>
       ) : null}
       <button
-        onClick={() => navigate("/")}
+        onClick={() => navigate(`/?job_id=${encodeURIComponent(jobId)}`)}
+        className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+      >
+        Back to Dashboard
+      </button>
+      <button
+        onClick={() => navigate("/?new_chat=1")}
         className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
       >
         New Video

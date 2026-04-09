@@ -65,7 +65,9 @@ export default function ModelSelectionPage({ pushToast }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
       <h1 className="text-xl font-bold">Model Selection</h1>
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{jobTitle}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+        Video name: <span className="font-normal">{jobTitle}</span>
+      </p>
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         {modelOptions.map((option) => {
