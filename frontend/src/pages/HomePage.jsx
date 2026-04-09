@@ -27,18 +27,24 @@ export default function HomePage({ pushToast }) {
   const [logs, setLogs] = useState([]);
   const [composerResetToken, setComposerResetToken] = useState(0);
 
-  const activeJobId = searchParams.get("job_id") || dashboard?.active_job?.job_id || "";
+  const activeJobId = searchParams.get("job_id") || "";
+  const freshWorkspace = searchParams.get("new_chat") === "1";
+
   const activeJob = useMemo(() => {
-    if (!dashboard?.jobs?.length) {
-      return dashboard?.active_job || null;
-    }
-
     if (activeJobId) {
-      return dashboard.jobs.find((job) => job.job_id === activeJobId) || dashboard.active_job || null;
+      return dashboard?.jobs?.find((job) => job.job_id === activeJobId) || dashboard?.active_job || null;
     }
 
-    return dashboard.active_job || dashboard.jobs[0] || null;
-  }, [activeJobId, dashboard]);
+    if (freshWorkspace) {
+      return null;
+    }
+
+    if (dashboard?.active_job?.job_id) {
+      return dashboard.active_job;
+    }
+
+    return null;
+  }, [activeJobId, dashboard, freshWorkspace]);
 
   useEffect(() => {
     if (!authenticated || !activeJob?.job_id || !ACTIVE_STATES.has(activeJob.status)) {
@@ -57,20 +63,6 @@ export default function HomePage({ pushToast }) {
       setLogs([]);
       return;
     }
-
-    const progressMap = {
-      uploading: 10,
-      uploaded: 15,
-      processing: 18,
-      downloading: 20,
-      extracting_audio: 40,
-      transcribing: 60,
-      waiting_for_model: 80,
-      summarize_requested: 85,
-      blog_requested: 90,
-      summary_ready: 100,
-      blog_ready: 100,
-    };
 
     const statusMap = {
       uploading: ["Receiving upload...", "Preparing storage..."],
@@ -143,7 +135,7 @@ export default function HomePage({ pushToast }) {
   };
 
   const handleNewChat = async () => {
-    setSearchParams({});
+    setSearchParams({ new_chat: "1" });
     setLogs([]);
     try {
       await refreshDashboard({ newChat: true });
@@ -267,7 +259,6 @@ export default function HomePage({ pushToast }) {
               ) : null}
             </div>
           </div>
-
         </section>
       ) : null}
 
