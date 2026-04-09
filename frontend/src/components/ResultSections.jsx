@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 const copyText = async (text) => {
@@ -15,6 +16,8 @@ const downloadFile = (name, content) => {
 };
 
 export default function ResultSections({ result, onToast }) {
+  const [copiedKey, setCopiedKey] = useState("");
+  const copyTimerRef = useRef(null);
   const {
     videoInfo = {},
     transcript = "",
@@ -24,6 +27,18 @@ export default function ResultSections({ result, onToast }) {
     downloadSummaryPdfUrl,
     downloadBlogPdfUrl,
   } = result || {};
+
+  const handleCopy = async (key, text, message) => {
+    await copyText(text);
+    onToast(message);
+    setCopiedKey(key);
+    if (copyTimerRef.current) {
+      clearTimeout(copyTimerRef.current);
+    }
+    copyTimerRef.current = setTimeout(() => {
+      setCopiedKey("");
+    }, 1000);
+  };
 
   return (
     <div className="space-y-4">
@@ -52,13 +67,10 @@ export default function ResultSections({ result, onToast }) {
           <h2 className="text-lg font-semibold">Summary</h2>
           <div className="flex gap-2">
             <button
-              onClick={async () => {
-                await copyText(summary);
-                onToast("Summary copied.");
-              }}
+              onClick={() => handleCopy("summary", summary, "Summary copied.")}
               className="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium"
             >
-              Copy Summary
+              {copiedKey === "summary" ? "Copied" : "Copy Summary"}
             </button>
             <button
               onClick={() => downloadFile("summary.txt", summary)}
@@ -81,13 +93,10 @@ export default function ResultSections({ result, onToast }) {
           <h2 className="text-lg font-semibold">Blog</h2>
           <div className="flex gap-2">
             <button
-              onClick={async () => {
-                await copyText(blog);
-                onToast("Blog copied.");
-              }}
+              onClick={() => handleCopy("blog", blog, "Blog copied.")}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium dark:border-slate-700"
             >
-              Copy Blog
+              {copiedKey === "blog" ? "Copied" : "Copy Blog"}
             </button>
             <button
               onClick={() => downloadFile("blog.txt", blog)}
