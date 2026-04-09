@@ -1,14 +1,23 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api, { API_BASE_URL } from "../services/api";
+<<<<<<< HEAD
 
 export default function LoginPage() {
   const navigate = useNavigate();
+=======
+import { useDashboardState } from "../context/DashboardContext";
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { refreshDashboard } = useDashboardState();
+>>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+<<<<<<< HEAD
   const onSubmit = async (event) => {
     event.preventDefault();
     setError("");
@@ -19,6 +28,23 @@ export default function LoginPage() {
       navigate("/");
     } catch (err) {
       setError(err?.message || "Login failed. Please try again.");
+=======
+  const submit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await api.login({ email, password });
+      if (!result.authenticated) {
+        throw new Error(result.flashes?.[0]?.message || "Login failed. Please check your credentials.");
+      }
+
+      await refreshDashboard();
+      navigate("/");
+    } catch (submitError) {
+      setError(submitError.message || "Login failed.");
+>>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
     } finally {
       setLoading(false);
     }
@@ -29,11 +55,17 @@ export default function LoginPage() {
       <h1 className="text-2xl font-bold">Welcome back</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Sign in to continue your AI workflow.</p>
 
+<<<<<<< HEAD
       <form onSubmit={onSubmit} className="mt-5 space-y-3">
+=======
+      <form onSubmit={submit} className="mt-5 space-y-3">
+>>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
         <input
           name="email"
           type="email"
           required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -43,15 +75,24 @@ export default function LoginPage() {
           name="password"
           type="password"
           required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none ring-brand-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-800"
         />
+<<<<<<< HEAD
         {error ? <p className="text-sm text-rose-500">{error}</p> : null}
         <button
           disabled={loading}
           className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+=======
+        {error ? <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p> : null}
+        <button
+          className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+          disabled={loading}
+>>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
         >
           {loading ? "Logging in..." : "Login"}
         </button>

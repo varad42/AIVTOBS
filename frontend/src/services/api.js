@@ -20,16 +20,45 @@ const extractJobIdFromResponseUrl = (responseUrl) => {
   }
 };
 
-const extractStateFromHtml = (html, scriptId) => {
+const parseHtml = (html) => {
+  const parser = new DOMParser();
+  return parser.parseFromString(html, "text/html");
+};
+
+export const extractStateFromHtml = (html, scriptId) => {
   try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
+    const doc = parseHtml(html);
     const script = doc.getElementById(scriptId);
     if (!script) return null;
     return JSON.parse(script.textContent || "{}");
   } catch {
     return null;
   }
+};
+
+const extractFlashesFromHtml = (html) => {
+  try {
+    const doc = parseHtml(html);
+    return [...doc.querySelectorAll(".flash")].map((element) => ({
+      category:
+        [...element.classList].find((className) => className.startsWith("flash-"))?.replace("flash-", "") ||
+        "info",
+      message: element.textContent?.replace(/\s+/g, " ").trim() || "",
+    }));
+  } catch {
+    return [];
+  }
+};
+
+const extractDashboardEnvelope = (html) => {
+  const state = extractStateFromHtml(html, "dashboardInitialState");
+  const doc = parseHtml(html);
+  const unauthenticated = Boolean(doc.querySelector(".login-overlay"));
+  return {
+    authenticated: Boolean(state?.user_email) && !unauthenticated,
+    dashboard: state,
+    flashes: extractFlashesFromHtml(html),
+  };
 };
 
 const extractJobIdFromHtml = (html) => {
@@ -63,7 +92,17 @@ const normalizeModelValue = (model) => {
   return value;
 };
 
+const requestHtml = async (config) => {
+  const response = await client.request({
+    responseType: "text",
+    maxRedirects: 5,
+    ...config,
+  });
+  return response.data;
+};
+
 export const api = {
+<<<<<<< HEAD
   async login({ email, password }) {
     const formData = new URLSearchParams();
     formData.append("email", email);
@@ -82,6 +121,54 @@ export const api = {
     }
 
     return { authenticated: true };
+=======
+  async getDashboardState({ jobId = "", newChat = false } = {}) {
+    const params = new URLSearchParams();
+    if (jobId) params.set("job_id", jobId);
+    if (newChat) params.set("new_chat", "1");
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    const html = await requestHtml({ method: "GET", url: `/dashboard${suffix}` });
+    return extractDashboardEnvelope(html);
+  },
+
+  async login({ email, password }) {
+    const body = new URLSearchParams();
+    body.append("email", email);
+    body.append("password", password);
+
+    const html = await requestHtml({
+      method: "POST",
+      url: "/",
+      data: body,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+
+    return extractDashboardEnvelope(html);
+  },
+
+  async signup({ email, password }) {
+    const body = new URLSearchParams();
+    body.append("email", email);
+    body.append("password", password);
+
+    const html = await requestHtml({
+      method: "POST",
+      url: "/register",
+      data: body,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+
+    return extractDashboardEnvelope(html);
+  },
+
+  async logout() {
+    await client.get("/logout");
+  },
+
+  async getYoutubePreview(videoUrl) {
+    const response = await client.get(`/youtube_preview?url=${encodeURIComponent(videoUrl)}`);
+    return response.data;
+>>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
   },
 
   async uploadVideo(file) {
@@ -89,14 +176,19 @@ export const api = {
     formData.append("video", file);
     const response = await client.post("/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      responseType: "text",
     });
     const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
     const htmlJobId = extractJobIdFromHtml(response?.data);
+<<<<<<< HEAD
     const jobId = redirectJobId || htmlJobId || extractJobId(response.data);
     if (!jobId && isLikelyLoginPageHtml(response?.data)) {
       throw new Error("No active backend session. Please login first.");
     }
     return { ...response.data, jobId };
+=======
+    return { jobId: redirectJobId || htmlJobId || extractJobId(response.data) };
+>>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
   },
 
   async processYoutube(videoUrl) {
@@ -104,68 +196,102 @@ export const api = {
     formData.append("video_url", videoUrl);
     const response = await client.post("/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      responseType: "text",
     });
     const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
     const htmlJobId = extractJobIdFromHtml(response?.data);
+<<<<<<< HEAD
     const jobId = redirectJobId || htmlJobId || extractJobId(response.data);
     if (!jobId && isLikelyLoginPageHtml(response?.data)) {
       throw new Error("No active backend session. Please login first.");
     }
     return { ...response.data, jobId };
+=======
+    return { jobId: redirectJobId || htmlJobId || extractJobId(response.data) };
+>>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
   },
 
-  async startProcessing({ jobId, model, length }) {
+  async getModelSelection(jobId) {
+    const html = await requestHtml({
+      method: "GET",
+      url: `/select_model/${encodeURIComponent(jobId)}`,
+    });
+    return extractStateFromHtml(html, "reactPageState") || {};
+  },
+
+  async startProcessing({ jobId, model, transcriptSource = "processed" }) {
     const formData = new URLSearchParams();
     formData.append("model", normalizeModelValue(model));
-    if (length) {
-      formData.append("length", length);
-    }
+    formData.append("transcript_source", transcriptSource);
 
-    const response = await client.post(`/select_model/${jobId}`, formData, {
+    await client.post(`/select_model/${jobId}`, formData, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
-    return response.data;
   },
 
   async getStatus(jobId) {
-    const response = await client.get(`/dashboard?job_id=${encodeURIComponent(jobId)}`, {
-      responseType: "text",
-    });
-
-    const state = extractStateFromHtml(response.data, "dashboardInitialState");
-    const activeJob = state?.active_job || {};
+    const envelope = await api.getDashboardState({ jobId });
+    const activeJob = envelope?.dashboard?.active_job || {};
     const status = activeJob?.status || "processing";
-    const progress = Number(state?.active_progress || 0);
+    const progress = Number(envelope?.dashboard?.active_progress || 0);
 
-    const logs = [
-      "Uploading video...",
-      "Extracting audio...",
-      "Transcribing...",
-      "Generating summary...",
-      "Generating blog...",
-    ];
+    const statusLogMap = {
+      uploading: ["Receiving upload...", "Queuing job..."],
+      uploaded: ["Upload completed.", "Waiting for worker..."],
+      processing: ["Worker claimed the job.", "Preparing processing pipeline..."],
+      downloading: ["Downloading source video..."],
+      extracting_audio: ["Extracting audio track..."],
+      transcribing: ["Transcribing audio..."],
+      waiting_for_model: ["Transcript ready.", "Waiting for model selection..."],
+      summarize_requested: ["Model selected.", "Generating summary..."],
+      summary_ready: ["Summary ready."],
+      blog_requested: ["Generating blog draft..."],
+      blog_ready: ["Blog ready."],
+      error: ["Processing failed."],
+    };
 
-    return { status, progress, logs };
+    return {
+      status,
+      progress,
+      logs: statusLogMap[status] || ["Processing..."],
+      dashboard: envelope.dashboard,
+      authenticated: envelope.authenticated,
+      flashes: envelope.flashes,
+    };
+  },
+
+  async triggerBlog(jobId) {
+    await client.get(`/generate_blog/${encodeURIComponent(jobId)}`);
   },
 
   async getResult(jobId) {
-    const [summaryResponse, blogResponse] = await Promise.all([
+    const [summaryResponse, blogResponse, transcriptResponse] = await Promise.all([
       client.get(`/summary/${encodeURIComponent(jobId)}`, { responseType: "text" }),
       client.get(`/blog/${encodeURIComponent(jobId)}`, { responseType: "text" }).catch(() => ({ data: "" })),
+      client
+        .get(`/cleaned_transcript/${encodeURIComponent(jobId)}`, { responseType: "text" })
+        .catch(() => ({ data: "" })),
     ]);
 
     const summaryState = extractStateFromHtml(summaryResponse.data, "reactPageState") || {};
     const blogState = extractStateFromHtml(blogResponse.data, "reactPageState") || {};
+    const transcriptState = extractStateFromHtml(transcriptResponse.data, "reactPageState") || {};
 
     return {
       videoInfo: {
-        title: summaryState.display_name || blogState.display_name || `Job ${String(jobId).slice(0, 8)}`,
+        title:
+          summaryState.display_name ||
+          blogState.display_name ||
+          transcriptState.job_title ||
+          `Job ${String(jobId).slice(0, 8)}`,
         source: "processed",
         thumbnail: "",
       },
-      transcript: "",
+      transcript: transcriptState.cleaned_transcript || "",
       summary: summaryState.summary || "",
+      timestampSummary: summaryState.timestamp_summary || "",
       blog: blogState.blog || "",
+      modelName: summaryState.model_name || blogState.model_name || "",
       downloadSummaryPdfUrl: `${API_BASE_URL}/download_summary/${encodeURIComponent(jobId)}`,
       downloadBlogPdfUrl: `${API_BASE_URL}/download_blog/${encodeURIComponent(jobId)}`,
     };

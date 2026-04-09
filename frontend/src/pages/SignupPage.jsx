@@ -1,17 +1,48 @@
-import { Link } from "react-router-dom";
-import { API_BASE_URL } from "../services/api";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { useDashboardState } from "../context/DashboardContext";
 
 export default function SignupPage() {
+  const navigate = useNavigate();
+  const { refreshDashboard } = useDashboardState();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await api.signup({ email, password });
+      if (!result.authenticated) {
+        throw new Error(result.flashes?.[0]?.message || "Signup failed. Please try again.");
+      }
+
+      await refreshDashboard();
+      navigate("/");
+    } catch (submitError) {
+      setError(submitError.message || "Signup failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
       <h1 className="text-2xl font-bold">Create account</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Start summarizing videos in minutes.</p>
 
-      <form method="POST" action={`${API_BASE_URL}/register`} className="mt-5 space-y-3">
+      <form onSubmit={submit} className="mt-5 space-y-3">
         <input
           name="email"
           type="email"
           required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           placeholder="Email address"
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none ring-brand-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-800"
         />
@@ -19,11 +50,17 @@ export default function SignupPage() {
           name="password"
           type="password"
           required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
           placeholder="Password (min 8 chars)"
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none ring-brand-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-800"
         />
-        <button className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
-          Sign Up
+        {error ? <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p> : null}
+        <button
+          className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+          disabled={loading}
+        >
+          {loading ? "Creating account..." : "Sign Up"}
         </button>
       </form>
 
