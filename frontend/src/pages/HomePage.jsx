@@ -45,7 +45,7 @@ export default function HomePage({ pushToast }) {
       });
 
       setProgress(35);
-      navigate(`/model/${jobId}`);
+      navigate(`/processing/${jobId}`);
     } catch (error) {
       pushToast(error?.response?.data?.message || error.message || "Failed to start processing.", "error");
       setLogs((prev) => [...prev, "Request failed. Please retry."]);
