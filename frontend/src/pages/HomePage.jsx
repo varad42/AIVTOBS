@@ -27,6 +27,7 @@ export default function HomePage({ pushToast }) {
   const [submitting, setSubmitting] = useState(false);
   const [logs, setLogs] = useState([]);
   const [progress, setProgress] = useState(0);
+  const [composerResetToken, setComposerResetToken] = useState(0);
 
   const activeJobId = searchParams.get("job_id") || dashboard?.active_job?.job_id || "";
   const activeJob = useMemo(() => {
@@ -146,6 +147,25 @@ export default function HomePage({ pushToast }) {
     }
   };
 
+  const handleNewChat = async () => {
+    setSearchParams({});
+    setLogs([]);
+    setProgress(0);
+    try {
+      await refreshDashboard({ newChat: true });
+      pushToast("New chat started.");
+    } catch (error) {
+      pushToast(error?.message || "Could not start a new chat.", "error");
+    }
+  };
+
+  const handleResetComposer = () => {
+    setComposerResetToken((value) => value + 1);
+    setLogs([]);
+    setProgress(0);
+    pushToast("Composer reset.");
+  };
+
   if (dashboardLoading && !dashboard) {
     return <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">Loading workspace...</div>;
   }
@@ -178,7 +198,32 @@ export default function HomePage({ pushToast }) {
 
   return (
     <div className="space-y-4">
-      <UploadCard onSubmit={handleSubmit} loading={submitting} />
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Workspace</p>
+            <h2 className="mt-1 text-lg font-semibold">Composer Controls</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleNewChat}
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              New Chat
+            </button>
+            <button
+              type="button"
+              onClick={handleResetComposer}
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              Reset Composer
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <UploadCard onSubmit={handleSubmit} loading={submitting} resetToken={composerResetToken} />
 
       {activeJob ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">

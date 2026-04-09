@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import api from "../services/api";
 
-export default function UploadCard({ onSubmit, loading }) {
+export default function UploadCard({ onSubmit, loading, resetToken = 0 }) {
   const [videoUrl, setVideoUrl] = useState("");
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -45,12 +45,26 @@ export default function UploadCard({ onSubmit, loading }) {
     };
   }, [videoUrl]);
 
+  useEffect(() => {
+    setVideoUrl("");
+    setFile(null);
+    setDragging(false);
+    setPreview(null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }, [resetToken]);
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">AI Video Summarizer & Blog Generator</h1>
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-        Upload a file or paste a YouTube URL to start.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">AI Video Summarizer & Blog Generator</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Upload a file or paste a YouTube URL to start.
+          </p>
+        </div>
+      </div>
 
       <div
         onDragOver={(e) => {
