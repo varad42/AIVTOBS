@@ -18,7 +18,8 @@ export default function LoginPage() {
 
     try {
       const result = await api.login({ email, password });
-      if (!result.authenticated) {
+      const dashboard = await api.getDashboardState();
+      if (!dashboard.authenticated) {
         throw new Error(result.flashes?.[0]?.message || "Login failed. Please check your credentials.");
       }
 

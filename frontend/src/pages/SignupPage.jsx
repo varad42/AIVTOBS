@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { useDashboardState } from "../context/DashboardContext";
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { refreshDashboard } = useDashboardState();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,10 +17,6 @@ export default function SignupPage() {
     try {
       const result = await api.signup({ email, password });
       const flashes = Array.isArray(result.flashes) ? result.flashes : [];
-      const successMessage = flashes.find((flash) =>
-        String(flash?.category || "").toLowerCase() === "success" ||
-        String(flash?.message || "").toLowerCase().includes("registration successful")
-      );
       const errorMessage = flashes.find((flash) =>
         String(flash?.category || "").toLowerCase() === "error"
       );
@@ -31,17 +25,7 @@ export default function SignupPage() {
         throw new Error(errorMessage.message || "Signup failed. Please try again.");
       }
 
-      if (successMessage) {
-        navigate("/login");
-        return;
-      }
-
-      if (!result.authenticated) {
-        throw new Error("Signup failed. Please try again.");
-      }
-
-      await refreshDashboard();
-      navigate("/");
+      navigate("/login");
     } catch (submitError) {
       setError(submitError.message || "Signup failed.");
     } finally {
