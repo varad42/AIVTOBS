@@ -15,7 +15,14 @@ export default function AppLayout({ children }) {
   };
 
   return (
-    <div className="app-shell-bg min-h-screen transition-colors duration-300">
+    <div className={`app-shell-bg min-h-screen transition-colors duration-300 ${authenticated ? "" : "relative overflow-hidden"}`}>
+      {!authenticated ? (
+        <>
+          <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-brand-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute right-[-5rem] top-1/3 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-[-6rem] left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-slate-400/10 blur-3xl" />
+        </>
+      ) : null}
       <div className={`mx-auto min-h-screen w-full max-w-7xl gap-4 px-4 py-4 ${authenticated ? "grid grid-cols-1 md:grid-cols-[260px_1fr]" : "flex items-start justify-center"}`}>
         {authenticated ? (
         <div className="space-y-3">

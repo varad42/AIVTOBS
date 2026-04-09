@@ -146,15 +146,16 @@ export default function HomePage({ pushToast }) {
 
   if (!authenticated) {
     return (
-      <section className="flex min-h-[60vh] items-start justify-center pt-10">
-        <div className="rounded-2xl border border-slate-200 bg-white px-8 py-6 text-center shadow-card dark:border-slate-800 dark:bg-slate-900">
-          <h1 className="text-3xl font-bold">Log in</h1>
+      <section className="flex min-h-[72vh] items-center justify-center px-4 py-10">
+        <div className="w-full max-w-lg rounded-3xl border border-slate-200/80 bg-white/85 px-10 py-10 text-center shadow-[0_20px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/85">
+          <div className="mx-auto mb-6 h-14 w-14 rounded-full bg-gradient-to-br from-brand-500 to-emerald-500 shadow-lg" />
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Log in</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">and create account</p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link to="/login" className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <Link to="/login" className="rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700">
             Login
           </Link>
-          <Link to="/signup" className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+          <Link to="/signup" className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
             Create account
           </Link>
           </div>
