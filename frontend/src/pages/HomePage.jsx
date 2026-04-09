@@ -147,14 +147,14 @@ export default function HomePage({ pushToast }) {
   if (!authenticated) {
     return (
       <section className="flex min-h-[74vh] items-center justify-center px-4 py-10">
-        <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200/80 bg-white/88 px-10 py-14 text-center shadow-[0_28px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/88 sm:px-14 sm:py-16">
+        <div className="w-full max-w-3xl rounded-[2rem] border border-slate-200/80 bg-white/88 px-12 py-16 text-center shadow-[0_28px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/88 sm:px-16 sm:py-20">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">Log in</h1>
           <p className="mt-3 text-base text-slate-500 dark:text-slate-400 sm:text-lg">New user? Create your account first.</p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <Link to="/login" className="rounded-2xl bg-brand-600 px-5 py-3.5 text-base font-semibold text-white hover:bg-brand-700">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2">
+          <Link to="/login" className="rounded-2xl bg-brand-600 px-6 py-4 text-base font-semibold text-white hover:bg-brand-700">
             Login
           </Link>
-          <Link to="/signup" className="rounded-2xl border border-slate-300 px-5 py-3.5 text-base font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+          <Link to="/signup" className="rounded-2xl border border-slate-300 px-6 py-4 text-base font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
             Create account
           </Link>
           </div>
