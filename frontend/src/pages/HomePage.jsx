@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import UploadCard from "../components/UploadCard";
-import ProgressBar from "../components/ProgressBar";
 import StatusFeed from "../components/StatusFeed";
 import api from "../services/api";
 import { useHistoryState } from "../context/HistoryContext";
@@ -26,7 +25,6 @@ export default function HomePage({ pushToast }) {
   const { dashboard, authenticated, loading: dashboardLoading, refreshDashboard } = useDashboardState();
   const [submitting, setSubmitting] = useState(false);
   const [logs, setLogs] = useState([]);
-  const [progress, setProgress] = useState(0);
   const [composerResetToken, setComposerResetToken] = useState(0);
 
   const activeJobId = searchParams.get("job_id") || dashboard?.active_job?.job_id || "";
@@ -56,7 +54,6 @@ export default function HomePage({ pushToast }) {
 
   useEffect(() => {
     if (!activeJob) {
-      setProgress(0);
       setLogs([]);
       return;
     }
@@ -90,7 +87,6 @@ export default function HomePage({ pushToast }) {
       error: [activeJob.error_message || "This job failed during processing."],
     };
 
-    setProgress(progressMap[activeJob.status] || 0);
     setLogs(statusMap[activeJob.status] || []);
   }, [activeJob]);
 
@@ -102,7 +98,6 @@ export default function HomePage({ pushToast }) {
 
     setSubmitting(true);
     setLogs(["Starting upload..."]);
-    setProgress(10);
 
     try {
       let response;
@@ -150,7 +145,6 @@ export default function HomePage({ pushToast }) {
   const handleNewChat = async () => {
     setSearchParams({});
     setLogs([]);
-    setProgress(0);
     try {
       await refreshDashboard({ newChat: true });
       pushToast("New chat started.");
@@ -162,7 +156,6 @@ export default function HomePage({ pushToast }) {
   const handleResetComposer = () => {
     setComposerResetToken((value) => value + 1);
     setLogs([]);
-    setProgress(0);
     pushToast("Composer reset.");
   };
 
@@ -201,7 +194,7 @@ export default function HomePage({ pushToast }) {
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-extrabold italic tracking-tight text-slate-900 dark:text-slate-100">
+            <h2 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 md:text-3xl">
               AI Video Summarizer & Blog Generator
             </h2>
           </div>
@@ -275,9 +268,6 @@ export default function HomePage({ pushToast }) {
             </div>
           </div>
 
-          <div className="mt-4">
-            <ProgressBar value={progress} />
-          </div>
         </section>
       ) : null}
 
