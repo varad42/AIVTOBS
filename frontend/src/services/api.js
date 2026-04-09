@@ -236,17 +236,26 @@ export const api = {
   },
 
   async getResult(jobId) {
-    const [summaryResponse, blogResponse, transcriptResponse] = await Promise.all([
+    const [summaryResponse, blogResponse, transcriptResponse, dashboardEnvelope] = await Promise.all([
       client.get(`/summary/${encodeURIComponent(jobId)}`, { responseType: "text" }),
       client.get(`/blog/${encodeURIComponent(jobId)}`, { responseType: "text" }).catch(() => ({ data: "" })),
       client
         .get(`/cleaned_transcript/${encodeURIComponent(jobId)}`, { responseType: "text" })
         .catch(() => ({ data: "" })),
+      api.getDashboardState({ jobId }).catch(() => null),
     ]);
 
     const summaryState = extractStateFromHtml(summaryResponse.data, "reactPageState") || {};
     const blogState = extractStateFromHtml(blogResponse.data, "reactPageState") || {};
     const transcriptState = extractStateFromHtml(transcriptResponse.data, "reactPageState") || {};
+
+    const matchedJob = dashboardEnvelope?.dashboard?.jobs?.find((job) => job.job_id === jobId);
+    const youtubeVideoId =
+      summaryState.youtube_video_id ||
+      blogState.youtube_video_id ||
+      transcriptState.youtube_video_id ||
+      matchedJob?.youtube_video_id ||
+      "";
 
     return {
       videoInfo: {
@@ -256,7 +265,7 @@ export const api = {
           transcriptState.job_title ||
           `Job ${String(jobId).slice(0, 8)}`,
         source: "processed",
-        thumbnail: "",
+        thumbnail: youtubeVideoId ? `${API_BASE_URL}/youtube_thumbnail/${encodeURIComponent(youtubeVideoId)}` : "",
       },
       transcript: transcriptState.cleaned_transcript || "",
       summary: summaryState.summary || "",
