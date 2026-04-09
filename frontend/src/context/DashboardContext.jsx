@@ -9,6 +9,11 @@ const readQueryJobId = (search) => {
   return params.get("job_id") || "";
 };
 
+const readQueryNewChat = (search) => {
+  const params = new URLSearchParams(search);
+  return params.get("new_chat") === "1";
+};
+
 export function DashboardProvider({ children }) {
   const location = useLocation();
   const [dashboard, setDashboard] = useState(null);
@@ -26,8 +31,9 @@ export function DashboardProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     const activeJobId = location.pathname === "/" ? readQueryJobId(location.search) : "";
+    const newChat = location.pathname === "/" ? readQueryNewChat(location.search) : false;
 
-    refreshDashboard({ jobId: activeJobId })
+    refreshDashboard({ jobId: activeJobId, newChat })
       .catch(() => {
         if (cancelled) return;
         setDashboard(null);

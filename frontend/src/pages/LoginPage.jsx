@@ -38,8 +38,8 @@ export default function LoginPage() {
         throw new Error(result.flashes?.[0]?.message || "Login failed. Please check your credentials.");
       }
 
-      await refreshDashboard();
-      navigate("/");
+      await refreshDashboard({ newChat: true });
+      navigate("/?new_chat=1");
     } catch (submitError) {
       setError(submitError.message || "Login failed.");
     } finally {
