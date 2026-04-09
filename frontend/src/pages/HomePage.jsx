@@ -146,19 +146,18 @@ export default function HomePage({ pushToast }) {
 
   if (!authenticated) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
-        <p className="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">AI Video Studio</p>
-        <h1 className="mt-2 text-3xl font-bold">Log in to access uploads, processing, and history.</h1>
-        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-          The new frontend now works with the existing Flask session. Sign in first, then upload a file or paste a YouTube URL.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
+      <section className="flex min-h-[60vh] items-start justify-center pt-10">
+        <div className="rounded-2xl border border-slate-200 bg-white px-8 py-6 text-center shadow-card dark:border-slate-800 dark:bg-slate-900">
+          <h1 className="text-3xl font-bold">Log in</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">and create account</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link to="/login" className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
             Login
           </Link>
           <Link to="/signup" className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
             Create account
           </Link>
+          </div>
         </div>
       </section>
     );
