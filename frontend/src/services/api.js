@@ -102,26 +102,6 @@ const requestHtml = async (config) => {
 };
 
 export const api = {
-<<<<<<< HEAD
-  async login({ email, password }) {
-    const formData = new URLSearchParams();
-    formData.append("email", email);
-    formData.append("password", password);
-
-    const response = await client.post("/", formData, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      responseType: "text",
-    });
-
-    const html = response?.data || "";
-    const authenticated = isLikelyDashboardHtml(html) && !isLikelyLoginPageHtml(html);
-
-    if (!authenticated) {
-      throw new Error("Invalid login or session not created. Please try again.");
-    }
-
-    return { authenticated: true };
-=======
   async getDashboardState({ jobId = "", newChat = false } = {}) {
     const params = new URLSearchParams();
     if (jobId) params.set("job_id", jobId);
@@ -168,7 +148,6 @@ export const api = {
   async getYoutubePreview(videoUrl) {
     const response = await client.get(`/youtube_preview?url=${encodeURIComponent(videoUrl)}`);
     return response.data;
->>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
   },
 
   async uploadVideo(file) {
@@ -180,15 +159,11 @@ export const api = {
     });
     const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
     const htmlJobId = extractJobIdFromHtml(response?.data);
-<<<<<<< HEAD
     const jobId = redirectJobId || htmlJobId || extractJobId(response.data);
     if (!jobId && isLikelyLoginPageHtml(response?.data)) {
       throw new Error("No active backend session. Please login first.");
     }
     return { ...response.data, jobId };
-=======
-    return { jobId: redirectJobId || htmlJobId || extractJobId(response.data) };
->>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
   },
 
   async processYoutube(videoUrl) {
@@ -200,15 +175,11 @@ export const api = {
     });
     const redirectJobId = extractJobIdFromResponseUrl(response?.request?.responseURL);
     const htmlJobId = extractJobIdFromHtml(response?.data);
-<<<<<<< HEAD
     const jobId = redirectJobId || htmlJobId || extractJobId(response.data);
     if (!jobId && isLikelyLoginPageHtml(response?.data)) {
       throw new Error("No active backend session. Please login first.");
     }
     return { ...response.data, jobId };
-=======
-    return { jobId: redirectJobId || htmlJobId || extractJobId(response.data) };
->>>>>>> cb1fba076ae51201578cf3c32ac95c4b29c104fc
   },
 
   async getModelSelection(jobId) {
