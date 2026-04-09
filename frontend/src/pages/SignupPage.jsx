@@ -36,7 +36,7 @@ export default function SignupPage() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
       <h1 className="text-2xl font-bold">Create account</h1>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Start summarizing videos in minutes.</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Start summarizing videos in minutes. </p>
 
       <form onSubmit={submit} className="mt-5 space-y-3">
         <input
