@@ -19,6 +19,7 @@ export default function ResultSections({ result, onToast }) {
     videoInfo = {},
     transcript = "",
     summary = "",
+    timestampSummary = "",
     blog = "",
     downloadSummaryPdfUrl,
     downloadBlogPdfUrl,
@@ -72,7 +73,7 @@ export default function ResultSections({ result, onToast }) {
             ) : null}
           </div>
         </div>
-        <p className="mt-3 whitespace-pre-wrap text-sm">{summary || "Summary not ready."}</p>
+        <p className="mt-3 whitespace-pre-wrap text-sm">{timestampSummary || summary || "Summary not ready."}</p>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">

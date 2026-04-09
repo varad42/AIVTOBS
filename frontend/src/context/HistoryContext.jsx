@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
+import { useDashboardState } from "./DashboardContext";
 
 const HistoryContext = createContext(null);
 const STORAGE_KEY = "ai-video-history-v1";
@@ -14,6 +15,7 @@ const readInitialHistory = () => {
 };
 
 export function HistoryProvider({ children }) {
+  const { dashboard } = useDashboardState();
   const [history, setHistory] = useState(readInitialHistory);
 
   const persist = (nextValue) => {
@@ -37,10 +39,19 @@ export function HistoryProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      history,
+      history:
+        dashboard?.jobs?.length
+          ? dashboard.jobs.map((job) => ({
+              id: job.job_id,
+              label: job.display_name || job.job_slug || `Job ${String(job.job_id).slice(0, 8)}`,
+              source: job.source_type || "video",
+              status: job.status || "idle",
+              updatedAt: job.uploaded_at || job.queued_at || "",
+            }))
+          : history,
       addHistoryItem,
     }),
-    [history]
+    [dashboard?.jobs, history]
   );
 
   return <HistoryContext.Provider value={value}>{children}</HistoryContext.Provider>;

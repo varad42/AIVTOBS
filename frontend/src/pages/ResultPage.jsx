@@ -11,6 +11,7 @@ export default function ResultPage({ pushToast }) {
   const { addHistoryItem } = useHistoryState();
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(null);
+  const [generatingBlog, setGeneratingBlog] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -39,6 +40,20 @@ export default function ResultPage({ pushToast }) {
     };
   }, [addHistoryItem, jobId, pushToast]);
 
+  const handleGenerateBlog = async () => {
+    setGeneratingBlog(true);
+    try {
+      await api.triggerBlog(jobId);
+      pushToast("Blog generation started.");
+      const payload = await api.getResult(jobId);
+      setResult(payload);
+    } catch (error) {
+      pushToast(error?.response?.data?.message || error.message || "Could not generate blog.", "error");
+    } finally {
+      setGeneratingBlog(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -52,6 +67,15 @@ export default function ResultPage({ pushToast }) {
   return (
     <div className="space-y-4">
       <ResultSections result={result} onToast={pushToast} />
+      {result?.summary && !result?.blog ? (
+        <button
+          onClick={handleGenerateBlog}
+          disabled={generatingBlog}
+          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+        >
+          {generatingBlog ? "Starting blog generation..." : "Generate Blog"}
+        </button>
+      ) : null}
       <button
         onClick={() => navigate("/")}
         className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"

@@ -1,9 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import api from "../services/api";
 
 export default function UploadCard({ onSubmit, loading }) {
   const [videoUrl, setVideoUrl] = useState("");
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
+  const [preview, setPreview] = useState(null);
   const inputRef = useRef(null);
 
   const handleDrop = (event) => {
@@ -16,6 +18,32 @@ export default function UploadCard({ onSubmit, loading }) {
   const process = () => {
     onSubmit({ file, videoUrl: videoUrl.trim() });
   };
+
+  useEffect(() => {
+    if (!videoUrl.trim()) {
+      setPreview(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await api.getYoutubePreview(videoUrl.trim());
+        if (!cancelled) {
+          setPreview(result);
+        }
+      } catch {
+        if (!cancelled) {
+          setPreview(null);
+        }
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [videoUrl]);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
@@ -65,6 +93,17 @@ export default function UploadCard({ onSubmit, loading }) {
           placeholder="https://www.youtube.com/watch?v=..."
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none ring-brand-500 transition focus:ring-2 dark:border-slate-700 dark:bg-slate-800"
         />
+        {preview?.title ? (
+          <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+            {preview.thumbnail_url ? (
+              <img src={preview.thumbnail_url} alt={preview.title} className="h-16 w-24 rounded-lg object-cover" />
+            ) : null}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{preview.title}</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Ready to queue this YouTube video.</p>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <button
