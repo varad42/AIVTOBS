@@ -30,6 +30,12 @@ export default function HomePage({ pushToast }) {
   const activeJobId = searchParams.get("job_id") || "";
   const freshWorkspace = searchParams.get("new_chat") === "1";
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("dark");
+    localStorage.setItem("ai-video-theme", "dark");
+  }, []);
+
   const activeJob = useMemo(() => {
     if (activeJobId) {
       return dashboard?.jobs?.find((job) => job.job_id === activeJobId) || dashboard?.active_job || null;

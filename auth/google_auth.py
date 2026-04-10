@@ -110,4 +110,4 @@ def google_callback():
 
     session["user"] = email
     flash("Logged in with Google successfully.", "success")
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("dashboard", new_chat=1))

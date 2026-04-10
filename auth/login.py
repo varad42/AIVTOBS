@@ -52,7 +52,7 @@ def login():
         if user and stored_password and bcrypt.check_password_hash(stored_password, password):
 
             session["user"] = email
-            return redirect("/dashboard")
+            return redirect("/dashboard?new_chat=1")
 
         if not user:
             flash("No account was found for that email. Register first or try another email.", "error")
