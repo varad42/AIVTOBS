@@ -11,11 +11,7 @@ def _clean_blog_text(text):
     if not text:
         return ""
 
-    cleaned_text = text.replace("### ", "")
-    cleaned_text = cleaned_text.replace("## ", "")
-    cleaned_text = cleaned_text.replace("# ", "")
-    cleaned_text = cleaned_text.replace("**", "")
-    cleaned_text = cleaned_text.replace("* ", "- ")
+    cleaned_text = text.replace("**", "")
     cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text)
 
     return cleaned_text.strip()
@@ -32,17 +28,19 @@ def generate_blog(summary):
     Blog Content
 
     Formatting rules:
-    Do not use Markdown.
-    Do not use #, ##, ### headings.
-    Do not use ** bold markers.
-    Do not use bullet points with *.
-    Return plain readable text only.
+    Use Markdown headings.
+    Put each section on its own line with a blank line between sections.
     Use this structure:
-    Title: ...
-    Tags: ...
-    Blog:
+    # Title
+
+    **Tags:** ...
+
+    ## Blog
+
     ...
-    Conclusion:
+
+    ## Conclusion
+
     ...
 
     Summary:
@@ -70,15 +68,18 @@ def generate_blog(summary):
         print("Gemini failed:", e)
 
         # ✅ fallback blog
-        return f"""
-Title: Auto Generated Blog
+        return _clean_blog_text(
+            f"""
+# Auto Generated Blog
 
-Tags: AI, Summary
+**Tags:** AI, Summary
 
-Blog:
+## Blog
 
 {summary}
 
-Conclusion:
+## Conclusion
+
 This blog was generated using fallback mode because AI API failed.
 """.strip()
+        )

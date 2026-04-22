@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from flask import Blueprint, render_template, send_file, redirect
 import tempfile
+import re
 
 from config import JOBS_FOLDER
 from database.mongo import jobs_collection
@@ -48,6 +49,32 @@ def _read_segments_file(path):
     return read_json(path)
 
 
+def _looks_timestamped_summary(text):
+
+    if not text:
+        return False
+
+    lines = [
+        line.strip()
+        for line in str(text).splitlines()
+        if line.strip()
+    ]
+
+    if not lines:
+        return False
+
+    timestamp_patterns = (
+        r"^\[\d{1,2}:\d{2}(?::\d{2})?\]\s+",
+        r"^\d{1,2}:\d{2}(?::\d{2})?\s*-\s+",
+    )
+
+    sample_lines = lines[:3]
+    return any(
+        any(re.match(pattern, line) for pattern in timestamp_patterns)
+        for line in sample_lines
+    )
+
+
 def _infer_segments_path(job):
 
     direct_path = job.get("segments_file")
@@ -68,6 +95,9 @@ def _get_timestamped_summary(job, plain_summary_text):
 
     if timestamped_text:
         return timestamped_text, timestamped_path
+
+    if _looks_timestamped_summary(plain_summary_text):
+        return plain_summary_text, job.get("summary_file")
 
     segments = _read_segments_file(_infer_segments_path(job))
     if not segments:

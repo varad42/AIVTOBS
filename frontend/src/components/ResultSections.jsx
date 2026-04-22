@@ -2,7 +2,26 @@ import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 const copyText = async (text) => {
-  await navigator.clipboard.writeText(text || "");
+  const value = text || "";
+
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("Copy to clipboard failed.");
+  }
 };
 
 const downloadFile = (name, content) => {
@@ -29,15 +48,19 @@ export default function ResultSections({ result, onToast }) {
   } = result || {};
 
   const handleCopy = async (key, text, message) => {
-    await copyText(text);
-    onToast(message);
-    setCopiedKey(key);
-    if (copyTimerRef.current) {
-      clearTimeout(copyTimerRef.current);
+    try {
+      await copyText(text);
+      onToast?.(message);
+      setCopiedKey(key);
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => {
+        setCopiedKey("");
+      }, 1000);
+    } catch {
+      onToast?.("Could not copy to clipboard.", "error");
     }
-    copyTimerRef.current = setTimeout(() => {
-      setCopiedKey("");
-    }, 1000);
   };
 
   return (
@@ -67,12 +90,14 @@ export default function ResultSections({ result, onToast }) {
           <h2 className="text-lg font-semibold">Summary</h2>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={() => handleCopy("summary", summary, "Summary copied.")}
               className="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium"
             >
               {copiedKey === "summary" ? "Copied" : "Copy Summary"}
             </button>
             <button
+              type="button"
               onClick={() => downloadFile("summary.txt", summary)}
               className="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium"
             >
@@ -93,12 +118,14 @@ export default function ResultSections({ result, onToast }) {
           <h2 className="text-lg font-semibold">Blog</h2>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={() => handleCopy("blog", blog, "Blog copied.")}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium dark:border-slate-700"
             >
               {copiedKey === "blog" ? "Copied" : "Copy Blog"}
             </button>
             <button
+              type="button"
               onClick={() => downloadFile("blog.txt", blog)}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium dark:border-slate-700"
             >
