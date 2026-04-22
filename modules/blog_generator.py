@@ -22,26 +22,25 @@ def generate_blog(summary):
     prompt = f"""
     Write a clean blog article from this summary.
 
-    Include:
-    Title
-    Tags
-    Blog Content
+    Format it exactly like this:
 
-    Formatting rules:
-    Use Markdown headings.
-    Put each section on its own line with a blank line between sections.
-    Use this structure:
-    # Title
+    Title: ...
 
-    **Tags:** ...
+    Tags: ...
 
-    ## Blog
+    Blog
 
     ...
 
-    ## Conclusion
+    Conclusion
 
     ...
+
+    Rules:
+    Keep one blank line between each section.
+    Do not use markdown headings.
+    Do not use bullet points unless they are part of the actual blog content.
+    Do not add extra labels or commentary.
 
     Summary:
     {summary}
@@ -67,18 +66,17 @@ def generate_blog(summary):
 
         print("Gemini failed:", e)
 
-        # ✅ fallback blog
         return _clean_blog_text(
             f"""
-# Auto Generated Blog
+Title: Auto Generated Blog
 
-**Tags:** AI, Summary
+Tags: AI, Summary
 
-## Blog
+Blog
 
 {summary}
 
-## Conclusion
+Conclusion
 
 This blog was generated using fallback mode because AI API failed.
 """.strip()

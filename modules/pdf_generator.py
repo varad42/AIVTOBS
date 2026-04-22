@@ -106,8 +106,22 @@ def create_pdf(text, path):
                 story.append(_build_paragraph(body_style, remainder, preserve_line_breaks=True))
             continue
 
+        if first_line.lower().startswith("title:"):
+            story.append(_build_paragraph(title_style, first_line))
+            remainder = "\n".join(lines[1:]).strip()
+            if remainder:
+                story.append(_build_paragraph(body_style, remainder, preserve_line_breaks=True))
+            continue
+
         if first_line.startswith("## "):
             story.append(_build_paragraph(heading_style, first_line[3:].strip()))
+            remainder = "\n".join(lines[1:]).strip()
+            if remainder:
+                story.append(_build_paragraph(body_style, remainder, preserve_line_breaks=True))
+            continue
+
+        if first_line.lower() in {"blog", "conclusion"}:
+            story.append(_build_paragraph(heading_style, first_line.title()))
             remainder = "\n".join(lines[1:]).strip()
             if remainder:
                 story.append(_build_paragraph(body_style, remainder, preserve_line_breaks=True))

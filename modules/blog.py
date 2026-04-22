@@ -27,6 +27,17 @@ def _get_job_display_name(job):
     return job.get("display_name") or job.get("job_slug") or job.get("job_id")
 
 
+def _build_download_name(job, suffix):
+
+    base_name = _get_job_display_name(job)
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", str(base_name).strip())
+    safe_name = re.sub(r"_+", "_", safe_name).strip("_")
+    if not safe_name:
+        safe_name = "video"
+
+    return f"{safe_name}_{suffix}.pdf"
+
+
 def _read_text_file(path):
     if not path or not exists(path):
         return None
@@ -154,12 +165,10 @@ def download_summary(job_id):
         return "Summary not ready"
 
     pdf_path = _build_pdf_from_text(path, summary_text)
-    model_name = job.get("summary_model", "t5")
-
     return send_file(
         pdf_path,
         as_attachment=True,
-        download_name=f"{job_id}_summary_{model_name}.pdf"
+        download_name=_build_download_name(job, "summary")
     )
 
 
@@ -230,10 +239,8 @@ def download_blog(job_id):
         return "Blog not ready"
 
     pdf_path = _build_pdf_from_text(path, blog_text)
-    model_name = job.get("summary_model", "t5")
-
     return send_file(
         pdf_path,
         as_attachment=True,
-        download_name=f"{job_id}_blog_{model_name}.pdf"
+        download_name=_build_download_name(job, "blog")
     )
