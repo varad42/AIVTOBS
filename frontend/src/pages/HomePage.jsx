@@ -142,9 +142,16 @@ export default function HomePage({ pushToast }) {
 
   const handleNewChat = () => {
     setSearchParams({ new_chat: "1" });
+    setComposerResetToken((value) => value + 1);
     setLogs([]);
     pushToast("New chat started.");
   };
+
+  useEffect(() => {
+    if (freshWorkspace) {
+      setComposerResetToken((value) => value + 1);
+    }
+  }, [freshWorkspace]);
 
   if (dashboardLoading && !dashboard) {
     return <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">Loading workspace...</div>;
