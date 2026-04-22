@@ -65,7 +65,7 @@ def get_video_title_from_url(video_url):
 
     try:
         result = subprocess.run(
-            ["yt-dlp", "--print", "%(title)s", "--skip-download", video_url],
+            ["yt-dlp", "--no-playlist", "--print", "%(title)s", "--skip-download", video_url],
             capture_output=True,
             text=True,
             check=True,

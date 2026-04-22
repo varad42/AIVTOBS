@@ -238,6 +238,7 @@ def download_youtube(url, output):
 
     cmd = [
         "yt-dlp",
+        "--no-playlist",
         "-o",
         output + ".%(ext)s",
     ]
