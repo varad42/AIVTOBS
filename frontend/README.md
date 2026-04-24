@@ -27,6 +27,16 @@ cd frontend
 npm install
 ```
 
+If you switch between Windows and WSL/Linux, reinstall dependencies in the environment you plan to run.
+Do not reuse `node_modules` across operating systems.
+
+For WSL/Linux:
+
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
 2. Configure API base URL:
 
 ```bash
