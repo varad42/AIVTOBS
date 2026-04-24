@@ -24,6 +24,7 @@ export default function HomePage({ pushToast }) {
   const { addHistoryItem } = useHistoryState();
   const { dashboard, authenticated, loading: dashboardLoading, refreshDashboard } = useDashboardState();
   const [submitting, setSubmitting] = useState(false);
+  const [generatingBlog, setGeneratingBlog] = useState(false);
   const [logs, setLogs] = useState([]);
   const [composerResetToken, setComposerResetToken] = useState(0);
 
@@ -132,11 +133,30 @@ export default function HomePage({ pushToast }) {
     if (!activeJob?.job_id) return;
 
     try {
+      setGeneratingBlog(true);
       await api.triggerBlog(activeJob.job_id);
       pushToast("Blog generation started.");
-      await refreshDashboard({ jobId: activeJob.job_id });
+      const startedAt = Date.now();
+      const timeoutMs = 60000;
+      const intervalMs = 2000;
+
+      while (Date.now() - startedAt < timeoutMs) {
+        const [payload, envelope] = await Promise.all([
+          api.getResult(activeJob.job_id),
+          refreshDashboard({ jobId: activeJob.job_id }),
+        ]);
+
+        const matchedJob = envelope?.dashboard?.jobs?.find((job) => job.job_id === activeJob.job_id);
+        if (payload?.blog?.trim() || matchedJob?.blog_file || matchedJob?.status === "blog_ready") {
+          break;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
     } catch (error) {
       pushToast(error?.response?.data?.message || error.message || "Could not start blog generation.", "error");
+    } finally {
+      setGeneratingBlog(false);
     }
   };
 
@@ -232,9 +252,10 @@ export default function HomePage({ pushToast }) {
                 <button
                   type="button"
                   onClick={handleGenerateBlog}
+                  disabled={generatingBlog}
                   className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
                 >
-                  Generate Blog
+                  {generatingBlog ? "Generating Blog..." : "Generate Blog"}
                 </button>
               ) : null}
               {activeJob.blog_file ? (

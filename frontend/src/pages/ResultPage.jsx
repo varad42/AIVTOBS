@@ -13,6 +13,28 @@ export default function ResultPage({ pushToast }) {
   const [result, setResult] = useState(null);
   const [generatingBlog, setGeneratingBlog] = useState(false);
 
+  const waitForBlogReady = async () => {
+    const startedAt = Date.now();
+    const timeoutMs = 60000;
+    const intervalMs = 2000;
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const [payload, envelope] = await Promise.all([
+        api.getResult(jobId),
+        api.getDashboardState({ jobId }).catch(() => null),
+      ]);
+
+      const matchedJob = envelope?.dashboard?.jobs?.find((job) => job.job_id === jobId);
+      if (payload?.blog?.trim() || matchedJob?.blog_file || matchedJob?.status === "blog_ready") {
+        return payload;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+
+    throw new Error("Blog generation is still running. Please refresh in a moment.");
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -45,7 +67,7 @@ export default function ResultPage({ pushToast }) {
     try {
       await api.triggerBlog(jobId);
       pushToast("Blog generation started.");
-      const payload = await api.getResult(jobId);
+      const payload = await waitForBlogReady();
       setResult(payload);
     } catch (error) {
       pushToast(error?.response?.data?.message || error.message || "Could not generate blog.", "error");
