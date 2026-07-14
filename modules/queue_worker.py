@@ -29,6 +29,7 @@ from config import JOBS_FOLDER, YTDLP_COOKIES_FILE, YTDLP_COOKIES_FROM_BROWSER
 from database.mongo import jobs_collection
 from modules.blog_generator import generate_blog
 from modules.cloud_storage import (
+    build_upload_path,
     build_job_path,
     download_to_local,
     exists as storage_exists,
@@ -676,6 +677,7 @@ def process_job(job):
         download_seconds = None
         audio_extraction_seconds = None
         transcription_seconds = None
+        stored_video_path = None
         with tempfile.TemporaryDirectory(prefix=f"job_{job_file_stem}_") as work_dir:
             video_path = os.path.join(work_dir, job_file_stem)
             audio_path = os.path.join(work_dir, f"{job_file_stem}.wav")
@@ -812,6 +814,20 @@ def process_job(job):
                             video_path = f
                             print(f"Downloaded video path resolved to {video_path}")
                             break
+
+                if youtube_video_id or download_error is not None:
+                    uploaded_video_path = build_upload_path(os.path.basename(video_path))
+                    upload_local_file(video_path, uploaded_video_path)
+                    stored_video_path = uploaded_video_path
+                    jobs_collection.update_one(
+                        {"job_id": job_id},
+                        {
+                            "$set": {
+                                "uploaded_video_file": uploaded_video_path
+                            }
+                        }
+                    )
+                    print(f"Video stored in Supabase uploads: {uploaded_video_path}")
 
             else:
                 video_path = download_to_local(file_path, temp_dir=work_dir)
